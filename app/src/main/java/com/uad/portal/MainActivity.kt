@@ -1,7 +1,5 @@
 package com.uad.portal
 
-import SessionManager
-import UserInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent

@@ -1,5 +1,6 @@
+package com.uad.portal
+
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -11,7 +12,7 @@ data class UserInfo(
     var sks: String? = null
 )
 
-class SessionManager(private val context: Context) {
+class SessionManager(context: Context) {
     private val sharedPref = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
     private val gson = Gson()
 

@@ -1,6 +1,5 @@
 package com.uad.portal
 
-import UserInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Connection
