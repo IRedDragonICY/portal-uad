@@ -1,6 +1,7 @@
 package com.uad.portal
 
 import SessionManager
+import UserInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,37 +46,29 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppContent() {
         val isLoggedInState = remember { mutableStateOf(sessionManager.loadSession() != null) }
-        val userInfo = sessionManager.loadUserInfo()
-        val usernameState = remember { mutableStateOf(userInfo?.first ?: "") }
-        val avatarUrlState = remember { mutableStateOf(userInfo?.second ?: "") }
-        val ipkState = remember { mutableStateOf("") }
-        val sksState = remember { mutableStateOf("") }
+        val userInfoState = remember { mutableStateOf(sessionManager.loadUserInfo() ?: UserInfo()) }
         val coroutineScope = rememberCoroutineScope()
 
         if (isLoggedInState.value) {
-            LoggedInScreen(usernameState, avatarUrlState, ipkState, sksState, isLoggedInState, coroutineScope)
+            LoggedInScreen(userInfoState, isLoggedInState, coroutineScope)
         } else {
-            LoginForm(usernameState, avatarUrlState, ipkState, sksState, isLoggedInState, coroutineScope)
+            LoginForm(userInfoState, isLoggedInState, coroutineScope)
         }
     }
 
-
     @Composable
     fun LoggedInScreen(
-        usernameState: MutableState<String>,
-        avatarUrlState: MutableState<String>,
-        ipkState: MutableState<String>,
-        sksState: MutableState<String>,
+        userInfoState: MutableState<UserInfo>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-            Text("You are logged in as ${usernameState.value}")
-            Text("Your IPK is ${ipkState.value}")
-            Text("Your total SKS is ${sksState.value}")
-            if (avatarUrlState.value.isNotEmpty()) {
+            Text("You are logged in as ${userInfoState.value.username}")
+            Text("Your IPK is ${userInfoState.value.ipk}")
+            Text("Your total SKS is ${userInfoState.value.sks}")
+            if (userInfoState.value.avatarUrl?.isNotEmpty() == true) {
                 Image(
-                    painter = rememberImagePainter(avatarUrlState.value),
+                    painter = rememberImagePainter(userInfoState.value.avatarUrl),
                     contentDescription = "User Avatar",
                     modifier = Modifier.size(100.dp)
                 )
@@ -87,10 +80,7 @@ class MainActivity : ComponentActivity() {
                     if (isLoggedOut) {
                         sessionManager.clearSession()
                         isLoggedInState.value = false
-                        usernameState.value = ""
-                        avatarUrlState.value = ""
-                        ipkState.value = ""
-                        sksState.value = ""
+                        userInfoState.value = UserInfo()
                     }
                 }
             }) {
@@ -99,13 +89,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     @Composable
     fun LoginForm(
-        usernameState: MutableState<String>,
-        avatarUrlState: MutableState<String>,
-        ipkState: MutableState<String>,
-        sksState: MutableState<String>,
+        userInfoState: MutableState<UserInfo>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope
     ) {
@@ -135,9 +121,9 @@ class MainActivity : ComponentActivity() {
                         isLoggedInState.value = isLoggedIn
                         loginErrorMessageState.value = errorMessage
                         if (isLoggedIn) {
-                            val (username, avatarUrl) = auth.getUserInfo(sessionCookie)
-                            usernameState.value = username
-                            avatarUrlState.value = avatarUrl
+                            val userInfo = auth.getUserInfo(sessionCookie)
+                            sessionManager.saveUserInfo(userInfo)
+                            userInfoState.value = userInfo
                         }
                     }
                 }),
@@ -153,12 +139,9 @@ class MainActivity : ComponentActivity() {
                     isLoggedInState.value = isLoggedIn
                     loginErrorMessageState.value = errorMessage
                     if (isLoggedIn) {
-                        val (username, avatarUrl, userInfo) = auth.getUserInfo(sessionCookie)
-                        sessionManager.saveUserInfo(username, avatarUrl)
-                        usernameState.value = username
-                        avatarUrlState.value = avatarUrl
-                        ipkState.value = userInfo.first
-                        sksState.value = userInfo.second
+                        val userInfo = auth.getUserInfo(sessionCookie)
+                        sessionManager.saveUserInfo(userInfo)
+                        userInfoState.value = userInfo
                     }
                 }
             }) {

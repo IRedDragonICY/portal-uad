@@ -1,29 +1,37 @@
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.core.content.edit
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+
+data class UserInfo(
+    var username: String? = null,
+    var avatarUrl: String? = null,
+    var ipk: String? = null,
+    var sks: String? = null
+)
 
 class SessionManager(private val context: Context) {
     private val sharedPref = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
+    private val gson = Gson()
 
     fun saveSession(session: String) {
-        with (sharedPref.edit()) {
+        sharedPref.edit {
             putString("session", session)
-            apply()
         }
     }
 
-    fun saveUserInfo(username: String, avatarUrl: String) {
-        with (sharedPref.edit()) {
-            putString("username", username)
-            putString("avatarUrl", avatarUrl)
-            apply()
+    fun saveUserInfo(userInfo: UserInfo) {
+        val userInfoJson = gson.toJson(userInfo)
+        sharedPref.edit {
+            putString("userInfo", userInfoJson)
         }
     }
 
     fun clearSession() {
-        with (sharedPref.edit()) {
+        sharedPref.edit {
             remove("session")
-            remove("username")
-            remove("avatarUrl")
-            apply()
+            remove("userInfo")
         }
     }
 
@@ -31,13 +39,13 @@ class SessionManager(private val context: Context) {
         return sharedPref.getString("session", null)
     }
 
-    fun loadUserInfo(): Pair<String, String>? {
-        val username = sharedPref.getString("username", null)
-        val avatarUrl = sharedPref.getString("avatarUrl", null)
-        return if (username != null && avatarUrl != null) {
-            Pair(username, avatarUrl)
+    fun loadUserInfo(): UserInfo {
+        val userInfoJson = sharedPref.getString("userInfo", null)
+        return if (userInfoJson != null) {
+            val type = object : TypeToken<UserInfo>() {}.type
+            gson.fromJson(userInfoJson, type)
         } else {
-            null
+            UserInfo()
         }
     }
 }
