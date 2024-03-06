@@ -18,6 +18,10 @@ import com.uad.portal.ui.theme.PortalUADTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import coil.compose.rememberImagePainter
+import kotlinx.coroutines.Dispatchers
+import org.jsoup.Connection
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
 class MainActivity : ComponentActivity() {
     private lateinit var sessionManager: SessionManager
@@ -44,27 +48,25 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppContent() {
         val isLoggedInState = remember { mutableStateOf(sessionManager.loadSession() != null) }
-        val userInfoState = remember { mutableStateOf(sessionManager.loadUserInfo() ?: UserInfo()) }
-        val isOnAttendancePageState = remember { mutableStateOf(false) }
+        val userInfoState = remember { mutableStateOf(sessionManager.loadUserInfo()) }
         val coroutineScope = rememberCoroutineScope()
+        val isAttendanceScreen = remember { mutableStateOf(false) }
 
-        if (isLoggedInState.value) {
-            if (isOnAttendancePageState.value) {
-                AttendanceScreen(isOnAttendancePageState)
-            } else {
-                homeScreen(userInfoState, isLoggedInState, isOnAttendancePageState, coroutineScope)
-            }
+        if (isAttendanceScreen.value) {
+            AttendanceScreen(onBack = { isAttendanceScreen.value = false })
+        } else if (isLoggedInState.value) {
+            LoggedInScreen(userInfoState, isLoggedInState, coroutineScope, onAttendanceClick = { isAttendanceScreen.value = true })
         } else {
             LoginForm(userInfoState, isLoggedInState, coroutineScope)
         }
     }
 
     @Composable
-    fun homeScreen(
+    fun LoggedInScreen(
         userInfoState: MutableState<UserInfo>,
         isLoggedInState: MutableState<Boolean>,
-        isOnAttendancePageState: MutableState<Boolean>,
-        coroutineScope: CoroutineScope
+        coroutineScope: CoroutineScope,
+        onAttendanceClick: () -> Unit
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
             Text("You are logged in as ${userInfoState.value.username}")
@@ -78,8 +80,8 @@ class MainActivity : ComponentActivity() {
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { isOnAttendancePageState.value = true }) {
-                Text("Go to Attendance")
+            Button(onClick = onAttendanceClick) {
+                Text("Absensi")
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
@@ -107,6 +109,22 @@ class MainActivity : ComponentActivity() {
         val passwordState = remember { mutableStateOf("") }
         val loginErrorMessageState = remember { mutableStateOf("") }
 
+        suspend fun login() {
+            val response = auth.loginPortal(loginUsernameState.value, passwordState.value)
+            val sessionCookie = response.cookie("portal_session")
+            sessionManager.saveSession(sessionCookie)
+            val (isLoggedIn, errorMessage) = auth.checkLogin(response)
+            isLoggedInState.value = isLoggedIn
+            loginErrorMessageState.value = errorMessage
+            if (isLoggedIn) {
+                val userInfo = auth.getUserInfo(sessionCookie)
+                sessionManager.saveUserInfo(userInfo)
+                userInfoState.value = userInfo
+                loginUsernameState.value = ""
+                passwordState.value = ""
+            }
+        }
+
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
             OutlinedTextField(
                 value = loginUsernameState.value,
@@ -120,39 +138,11 @@ class MainActivity : ComponentActivity() {
                 onValueChange = { passwordState.value = it },
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    coroutineScope.launch {
-                        val response = auth.loginPortal(loginUsernameState.value, passwordState.value)
-                        val sessionCookie = response.cookie("portal_session")
-                        sessionManager.saveSession(sessionCookie)
-                        val (isLoggedIn, errorMessage) = auth.checkLogin(response)
-                        isLoggedInState.value = isLoggedIn
-                        loginErrorMessageState.value = errorMessage
-                        if (isLoggedIn) {
-                            val userInfo = auth.getUserInfo(sessionCookie)
-                            sessionManager.saveUserInfo(userInfo)
-                            userInfoState.value = userInfo
-                        }
-                    }
-                }),
+                keyboardActions = KeyboardActions(onDone = { coroutineScope.launch { login() } }),
                 visualTransformation = PasswordVisualTransformation(),
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                coroutineScope.launch {
-                    val response = auth.loginPortal(loginUsernameState.value, passwordState.value)
-                    val sessionCookie = response.cookie("portal_session")
-                    sessionManager.saveSession(sessionCookie)
-                    val (isLoggedIn, errorMessage) = auth.checkLogin(response)
-                    isLoggedInState.value = isLoggedIn
-                    loginErrorMessageState.value = errorMessage
-                    if (isLoggedIn) {
-                        val userInfo = auth.getUserInfo(sessionCookie)
-                        sessionManager.saveUserInfo(userInfo)
-                        userInfoState.value = userInfo
-                    }
-                }
-            }) {
+            Button(onClick = { coroutineScope.launch { login() } }) {
                 Text("Login")
             }
 
@@ -163,16 +153,44 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun AttendanceScreen(
-        isOnAttendancePageState: MutableState<Boolean>
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-            Text("This is the attendance screen.")
-            Button(onClick = {
-                isOnAttendancePageState.value = false
-            }) {
-                Text("Back to Home")
+    fun AttendanceScreen(onBack: () -> Unit) {
+        val coroutineScope = rememberCoroutineScope()
+        val attendanceInfo = remember { mutableStateOf("") }
+
+        LaunchedEffect(Unit) {
+            coroutineScope.launch(Dispatchers.IO) {
+                attendanceInfo.value = getAttendanceInfo(sessionManager.loadSession()!!)
             }
+        }
+
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
+            Button(onClick = onBack) {
+                Text("Kembali")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Halaman Absensi")
+            if (attendanceInfo.value.isNotEmpty()) {
+                Text(attendanceInfo.value)
+            }
+        }
+    }
+
+    fun getAttendanceInfo(sessionCookie: String): String {
+        return try {
+            val response = Jsoup.connect("https://portal.uad.ac.id/presensi/Kuliah")
+                .cookie("portal_session", sessionCookie)
+                .method(Connection.Method.GET)
+                .execute()
+
+            val doc: Document = response.parse()
+            val infoElement = doc.select("div.note.note-info")
+            if (!infoElement.isEmpty()) {
+                infoElement.text()
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            "Error: ${e.message}"
         }
     }
 }
