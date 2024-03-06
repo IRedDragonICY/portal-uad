@@ -45,19 +45,25 @@ class MainActivity : ComponentActivity() {
     fun AppContent() {
         val isLoggedInState = remember { mutableStateOf(sessionManager.loadSession() != null) }
         val userInfoState = remember { mutableStateOf(sessionManager.loadUserInfo() ?: UserInfo()) }
+        val isOnAttendancePageState = remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
 
         if (isLoggedInState.value) {
-            LoggedInScreen(userInfoState, isLoggedInState, coroutineScope)
+            if (isOnAttendancePageState.value) {
+                AttendanceScreen(isOnAttendancePageState)
+            } else {
+                homeScreen(userInfoState, isLoggedInState, isOnAttendancePageState, coroutineScope)
+            }
         } else {
             LoginForm(userInfoState, isLoggedInState, coroutineScope)
         }
     }
 
     @Composable
-    fun LoggedInScreen(
+    fun homeScreen(
         userInfoState: MutableState<UserInfo>,
         isLoggedInState: MutableState<Boolean>,
+        isOnAttendancePageState: MutableState<Boolean>,
         coroutineScope: CoroutineScope
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
@@ -70,6 +76,10 @@ class MainActivity : ComponentActivity() {
                     contentDescription = "User Avatar",
                     modifier = Modifier.size(100.dp)
                 )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { isOnAttendancePageState.value = true }) {
+                Text("Go to Attendance")
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
@@ -148,6 +158,20 @@ class MainActivity : ComponentActivity() {
 
             if (loginErrorMessageState.value.isNotEmpty()) {
                 Text(loginErrorMessageState.value, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+
+    @Composable
+    fun AttendanceScreen(
+        isOnAttendancePageState: MutableState<Boolean>
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
+            Text("This is the attendance screen.")
+            Button(onClick = {
+                isOnAttendancePageState.value = false
+            }) {
+                Text("Back to Home")
             }
         }
     }
