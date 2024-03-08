@@ -72,4 +72,34 @@ class Auth {
 
         return@withContext UserInfo(username, avatarUrl, ipk, sks)
     }
+
+    suspend fun autoLogin(sessionManager: SessionManager): UserInfo? {
+        val (username, password) = sessionManager.loadCredentials()
+        if (username != null && password != null) {
+            val response = loginPortal(username, password)
+            val sessionCookie = response.cookie("portal_session")
+            val (isLoggedIn, errorMessage) = checkLogin(response)
+            if (isLoggedIn) {
+                sessionManager.saveSession(sessionCookie)
+                val userInfo = getUserInfo(sessionCookie)
+                sessionManager.saveUserInfo(userInfo)
+                return userInfo
+            }
+        }
+        return null
+    }
+
+    suspend fun login(sessionManager: SessionManager, username: String, password: String): UserInfo? {
+        val response = loginPortal(username, password)
+        val sessionCookie = response.cookie("portal_session")
+        val (isLoggedIn, errorMessage) = checkLogin(response)
+        if (isLoggedIn) {
+            sessionManager.saveSession(sessionCookie)
+            sessionManager.saveCredentials(username, password)
+            val userInfo = getUserInfo(sessionCookie)
+            sessionManager.saveUserInfo(userInfo)
+            return userInfo
+        }
+        return null
+    }
 }

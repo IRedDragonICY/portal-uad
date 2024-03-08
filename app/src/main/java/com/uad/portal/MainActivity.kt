@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         lifecycleScope.launch {
-            autoLogin()
+            val userInfo = auth.autoLogin(sessionManager)
         }
     }
 
@@ -130,21 +130,6 @@ class MainActivity : ComponentActivity() {
         val passwordVisibilityState = remember { mutableStateOf(false) }
         val loginErrorMessageState = remember { mutableStateOf("") }
 
-        suspend fun login(username: String, password: String) {
-            val response = auth.loginPortal(username, password)
-            val sessionCookie = response.cookie("portal_session")
-            sessionManager.saveSession(sessionCookie)
-            val (isLoggedIn, errorMessage) = auth.checkLogin(response)
-            isLoggedInState.value = isLoggedIn
-            loginErrorMessageState.value = errorMessage
-            if (isLoggedIn) {
-                sessionManager.saveCredentials(username, password)
-                val userInfo = auth.getUserInfo(sessionCookie)
-                sessionManager.saveUserInfo(userInfo)
-                userInfoState.value = userInfo
-            }
-        }
-
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
             OutlinedTextField(
                 value = loginUsernameState.value,
@@ -158,7 +143,15 @@ class MainActivity : ComponentActivity() {
                 onValueChange = { passwordState.value = it },
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { coroutineScope.launch { login(loginUsernameState.value, passwordState.value) } }),
+                keyboardActions = KeyboardActions(onDone = { coroutineScope.launch {
+                    val userInfo = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
+                    if (userInfo != null) {
+                        isLoggedInState.value = true
+                        userInfoState.value = userInfo
+                    } else {
+                        loginErrorMessageState.value = "Failed to login"
+                    }
+                }}),
                 visualTransformation = if (passwordVisibilityState.value) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisibilityState.value = !passwordVisibilityState.value }) {
@@ -170,7 +163,15 @@ class MainActivity : ComponentActivity() {
                 }
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { coroutineScope.launch { login(loginUsernameState.value, passwordState.value) } }) {
+            Button(onClick = { coroutineScope.launch {
+                val userInfo = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
+                if (userInfo != null) {
+                    isLoggedInState.value = true
+                    userInfoState.value = userInfo
+                } else {
+                    loginErrorMessageState.value = "Failed to login"
+                }
+            }}) {
                 Text("Login")
             }
 
@@ -179,6 +180,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 
     @Composable
     fun AttendanceScreen(onBack: () -> Unit) {
@@ -278,18 +280,6 @@ class MainActivity : ComponentActivity() {
 
 
 
-    suspend fun autoLogin() {
-        val (username, password) = sessionManager.loadCredentials()
-        if (username != null && password != null) {
-            val response = auth.loginPortal(username, password)
-            val sessionCookie = response.cookie("portal_session")
-            val (isLoggedIn, errorMessage) = auth.checkLogin(response)
-            if (isLoggedIn) {
-                sessionManager.saveSession(sessionCookie)
-                val userInfo = auth.getUserInfo(sessionCookie)
-                sessionManager.saveUserInfo(userInfo)
-            }
-        }
-    }
+
 
 }
