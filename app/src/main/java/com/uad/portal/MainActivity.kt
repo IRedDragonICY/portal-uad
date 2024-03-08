@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.uad.portal.ui.theme.PortalUADTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -22,7 +23,6 @@ import kotlinx.coroutines.Dispatchers
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import com.google.gson.Gson
 
 data class Attendance(
     val courseClass: String,
@@ -54,6 +54,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+        lifecycleScope.launch {
+            autoLogin()
         }
     }
 
@@ -111,6 +114,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
     @Composable
     fun LoginForm(
         userInfoState: MutableState<UserInfo>,
@@ -121,19 +125,18 @@ class MainActivity : ComponentActivity() {
         val passwordState = remember { mutableStateOf("") }
         val loginErrorMessageState = remember { mutableStateOf("") }
 
-        suspend fun login() {
-            val response = auth.loginPortal(loginUsernameState.value, passwordState.value)
+        suspend fun login(username: String, password: String) {
+            val response = auth.loginPortal(username, password)
             val sessionCookie = response.cookie("portal_session")
             sessionManager.saveSession(sessionCookie)
             val (isLoggedIn, errorMessage) = auth.checkLogin(response)
             isLoggedInState.value = isLoggedIn
             loginErrorMessageState.value = errorMessage
             if (isLoggedIn) {
+                sessionManager.saveCredentials(username, password)
                 val userInfo = auth.getUserInfo(sessionCookie)
                 sessionManager.saveUserInfo(userInfo)
                 userInfoState.value = userInfo
-                loginUsernameState.value = ""
-                passwordState.value = ""
             }
         }
 
@@ -150,11 +153,11 @@ class MainActivity : ComponentActivity() {
                 onValueChange = { passwordState.value = it },
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { coroutineScope.launch { login() } }),
+                keyboardActions = KeyboardActions(onDone = { coroutineScope.launch { login(loginUsernameState.value, passwordState.value) } }),
                 visualTransformation = PasswordVisualTransformation(),
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { coroutineScope.launch { login() } }) {
+            Button(onClick = { coroutineScope.launch { login(loginUsernameState.value, passwordState.value) } }) {
                 Text("Login")
             }
 
@@ -180,20 +183,24 @@ class MainActivity : ComponentActivity() {
                 Text("Kembali")
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Halaman Absensi")
-            attendanceInfo.value.forEach { attendance ->
-                Text("Matakuliah / Kelas: ${attendance.courseClass}")
-                Text("Semester: ${attendance.semester}")
-                Text("Pertemuan ke-: ${attendance.meetingNumber}")
-                Text("Tgl. Pertemuan: ${attendance.meetingDate}")
-                Text("Materi: ${attendance.material}")
-                Text("Mulai Presensi: ${attendance.attendanceStart}")
-                Text("Presensi: ${attendance.attendanceStatus}")
-                Text("Informasi: ${attendance.information}")
-                Spacer(modifier = Modifier.height(16.dp))
+            if (attendanceInfo.value.isNotEmpty() && attendanceInfo.value[0].information == "Tidak ada Presensi Kelas Matakuliah saat ini.") {
+                Text(attendanceInfo.value[0].information)
+            } else {
+                attendanceInfo.value.forEach { attendance ->
+                    Text("Matakuliah / Kelas: ${attendance.courseClass}")
+                    Text("Semester: ${attendance.semester}")
+                    Text("Pertemuan ke-: ${attendance.meetingNumber}")
+                    Text("Tgl. Pertemuan: ${attendance.meetingDate}")
+                    Text("Materi: ${attendance.material}")
+                    Text("Mulai Presensi: ${attendance.attendanceStart}")
+                    Text("Presensi: ${attendance.attendanceStatus}")
+                    Text("Informasi: ${attendance.information}")
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }
+
 
     fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
         return try {
@@ -203,6 +210,21 @@ class MainActivity : ComponentActivity() {
                 .execute()
 
             val doc: Document = response.parse()
+            val infoElement = doc.select("div.note.note-info")
+            if (!infoElement.isEmpty()) {
+                if (infoElement.text().contains("Tidak ada Presensi Kelas Matakuliah saat ini.")) {
+                    return listOf(Attendance(
+                        courseClass = "N/A",
+                        semester = "N/A",
+                        meetingNumber = 0,
+                        meetingDate = "N/A",
+                        material = "N/A",
+                        attendanceStart = "N/A",
+                        attendanceStatus = "N/A",
+                        information = "Tidak ada Presensi Kelas Matakuliah saat ini."
+                    ))
+                }
+            }
             val attendanceTables = doc.select("div.m-heading-1.border-green.m-bordered")
 
             attendanceTables.map { table ->
@@ -238,6 +260,22 @@ class MainActivity : ComponentActivity() {
                 attendanceStatus = "",
                 information = ""
             ))
+        }
+    }
+
+
+
+    suspend fun autoLogin() {
+        val (username, password) = sessionManager.loadCredentials()
+        if (username != null && password != null) {
+            val response = auth.loginPortal(username, password)
+            val sessionCookie = response.cookie("portal_session")
+            val (isLoggedIn, errorMessage) = auth.checkLogin(response)
+            if (isLoggedIn) {
+                sessionManager.saveSession(sessionCookie)
+                val userInfo = auth.getUserInfo(sessionCookie)
+                sessionManager.saveUserInfo(userInfo)
+            }
         }
     }
 

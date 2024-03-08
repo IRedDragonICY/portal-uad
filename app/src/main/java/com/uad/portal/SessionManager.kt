@@ -29,10 +29,25 @@ class SessionManager(context: Context) {
         }
     }
 
+    fun saveCredentials(username: String, password: String) {
+        sharedPref.edit {
+            putString("username", username)
+            putString("password", password)
+        }
+    }
+
+    fun loadCredentials(): Pair<String?, String?> {
+        val username = sharedPref.getString("username", null)
+        val password = sharedPref.getString("password", null)
+        return Pair(username, password)
+    }
+
     fun clearSession() {
         sharedPref.edit {
             remove("session")
             remove("userInfo")
+            remove("username")
+            remove("password")
         }
     }
 
