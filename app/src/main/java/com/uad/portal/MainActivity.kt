@@ -22,6 +22,18 @@ import kotlinx.coroutines.Dispatchers
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import com.google.gson.Gson
+
+data class Attendance(
+    val courseClass: String,
+    val semester: String,
+    val meetingNumber: Int,
+    val meetingDate: String,
+    val material: String,
+    val attendanceStart: String,
+    val attendanceStatus: String,
+    val information: String
+)
 
 class MainActivity : ComponentActivity() {
     private lateinit var sessionManager: SessionManager
@@ -155,7 +167,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AttendanceScreen(onBack: () -> Unit) {
         val coroutineScope = rememberCoroutineScope()
-        val attendanceInfo = remember { mutableStateOf("") }
+        val attendanceInfo = remember { mutableStateOf(emptyList<Attendance>()) }
 
         LaunchedEffect(Unit) {
             coroutineScope.launch(Dispatchers.IO) {
@@ -169,13 +181,21 @@ class MainActivity : ComponentActivity() {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text("Halaman Absensi")
-            if (attendanceInfo.value.isNotEmpty()) {
-                Text(attendanceInfo.value)
+            attendanceInfo.value.forEach { attendance ->
+                Text("Matakuliah / Kelas: ${attendance.courseClass}")
+                Text("Semester: ${attendance.semester}")
+                Text("Pertemuan ke-: ${attendance.meetingNumber}")
+                Text("Tgl. Pertemuan: ${attendance.meetingDate}")
+                Text("Materi: ${attendance.material}")
+                Text("Mulai Presensi: ${attendance.attendanceStart}")
+                Text("Presensi: ${attendance.attendanceStatus}")
+                Text("Informasi: ${attendance.information}")
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 
-    fun getAttendanceInfo(sessionCookie: String): String {
+    fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
         return try {
             val response = Jsoup.connect("https://portal.uad.ac.id/presensi/Kuliah")
                 .cookie("portal_session", sessionCookie)
@@ -183,14 +203,42 @@ class MainActivity : ComponentActivity() {
                 .execute()
 
             val doc: Document = response.parse()
-            val infoElement = doc.select("div.note.note-info")
-            if (!infoElement.isEmpty()) {
-                infoElement.text()
-            } else {
-                ""
+            val attendanceTables = doc.select("div.m-heading-1.border-green.m-bordered")
+
+            attendanceTables.map { table ->
+                val rows = table.select("table.table-hover.table-light tr")
+                val courseClass = rows[0].select("td")[2].text()
+                val semester = rows[1].select("td")[2].text()
+                val meetingNumber = rows[2].select("td")[2].text().toInt()
+                val meetingDate = rows[3].select("td")[2].text()
+                val material = rows[4].select("td")[2].text()
+                val attendanceStart = rows[5].select("td")[2].text()
+                val attendanceStatus = rows[6].select("td span").text()
+                val information = table.select("div.note.note-info").text()
+
+                Attendance(
+                    courseClass = courseClass,
+                    semester = semester,
+                    meetingNumber = meetingNumber,
+                    meetingDate = meetingDate,
+                    material = material,
+                    attendanceStart = attendanceStart,
+                    attendanceStatus = attendanceStatus,
+                    information = information
+                )
             }
         } catch (e: Exception) {
-            "Error: ${e.message}"
+            listOf(Attendance(
+                courseClass = "Error: ${e.message}",
+                semester = "",
+                meetingNumber = 0,
+                meetingDate = "",
+                material = "",
+                attendanceStart = "",
+                attendanceStatus = "",
+                information = ""
+            ))
         }
     }
+
 }
