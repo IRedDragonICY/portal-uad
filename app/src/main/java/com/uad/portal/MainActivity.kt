@@ -214,7 +214,7 @@ class MainActivity : ComponentActivity() {
                 val material = rows[4].select("td")[2].text()
                 val attendanceStart = rows[5].select("td")[2].text()
                 val attendanceStatus = rows[6].select("td span").text()
-                val information = table.select("div.note.note-info").text()
+                val information = table.select("div.note.note-info").text().replaceFirst("Informasi", "").trim()
 
                 Attendance(
                     courseClass = courseClass,
