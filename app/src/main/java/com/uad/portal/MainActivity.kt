@@ -7,12 +7,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.uad.portal.ui.theme.PortalUADTheme
@@ -123,6 +127,7 @@ class MainActivity : ComponentActivity() {
     ) {
         val loginUsernameState = remember { mutableStateOf("") }
         val passwordState = remember { mutableStateOf("") }
+        val passwordVisibilityState = remember { mutableStateOf(false) }
         val loginErrorMessageState = remember { mutableStateOf("") }
 
         suspend fun login(username: String, password: String) {
@@ -154,7 +159,15 @@ class MainActivity : ComponentActivity() {
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { coroutineScope.launch { login(loginUsernameState.value, passwordState.value) } }),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisibilityState.value) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisibilityState.value = !passwordVisibilityState.value }) {
+                        Icon(
+                            imageVector = if (passwordVisibilityState.value) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (passwordVisibilityState.value) "Hide password" else "Show password"
+                        )
+                    }
+                }
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { coroutineScope.launch { login(loginUsernameState.value, passwordState.value) } }) {
