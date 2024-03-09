@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { coroutineScope.launch {
-                    val userInfo = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
+                    val (userInfo, errorMessage) = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
                     if (userInfo != null) {
                         isLoggedInState.value = true
                         userInfoState.value = userInfo
@@ -183,17 +183,16 @@ class MainActivity : ComponentActivity() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { coroutineScope.launch {
-                val userInfo = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
+                val (userInfo, errorMessage) = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
                 if (userInfo != null) {
                     isLoggedInState.value = true
                     userInfoState.value = userInfo
                 } else {
-                    loginErrorMessageState.value = "Failed to login"
+                    loginErrorMessageState.value = errorMessage ?: "Failed to login"
                 }
             }}) {
                 Text("Login")
             }
-
             if (loginErrorMessageState.value.isNotEmpty()) {
                 Text(loginErrorMessageState.value, color = MaterialTheme.colorScheme.error)
             }
@@ -299,9 +298,4 @@ class MainActivity : ComponentActivity() {
             ))
         }
     }
-
-
-
-
-
 }

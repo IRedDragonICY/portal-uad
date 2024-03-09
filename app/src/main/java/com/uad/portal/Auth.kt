@@ -89,7 +89,7 @@ class Auth {
         return null
     }
 
-    suspend fun login(sessionManager: SessionManager, username: String, password: String): UserInfo? {
+    suspend fun login(sessionManager: SessionManager, username: String, password: String): Pair<UserInfo?, String?> {
         val response = loginPortal(username, password)
         val sessionCookie = response.cookie("portal_session")
         val (isLoggedIn, errorMessage) = checkLogin(response)
@@ -98,8 +98,8 @@ class Auth {
             sessionManager.saveCredentials(username, password)
             val userInfo = getUserInfo(sessionCookie)
             sessionManager.saveUserInfo(userInfo)
-            return userInfo
+            return Pair(userInfo, null)
         }
-        return null
+        return Pair(null, errorMessage)
     }
 }
