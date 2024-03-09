@@ -132,8 +132,7 @@ class MainActivity : ComponentActivity() {
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope
     ) {
-        val loginUsernameState = remember { mutableStateOf("") }
-        val passwordState = remember { mutableStateOf("") }
+        val credentialsState = remember { mutableStateOf(Credentials("", "")) }
         val passwordVisibilityState = remember { mutableStateOf(false) }
         val loginErrorMessageState = remember { mutableStateOf("") }
 
@@ -141,8 +140,8 @@ class MainActivity : ComponentActivity() {
 
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
             OutlinedTextField(
-                value = loginUsernameState.value,
-                onValueChange = { loginUsernameState.value = it },
+                value = credentialsState.value.username,
+                onValueChange = { credentialsState.value = credentialsState.value.copy(username = it) },
                 label = { Text("Username") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
@@ -157,12 +156,12 @@ class MainActivity : ComponentActivity() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
-                value = passwordState.value,
-                onValueChange = { passwordState.value = it },
+                value = credentialsState.value.password,
+                onValueChange = { credentialsState.value = credentialsState.value.copy(password = it) },
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { coroutineScope.launch {
-                    val (userInfo, errorMessage) = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
+                    val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
                     if (userInfo != null) {
                         isLoggedInState.value = true
                         userInfoState.value = userInfo
@@ -183,7 +182,7 @@ class MainActivity : ComponentActivity() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { coroutineScope.launch {
-                val (userInfo, errorMessage) = auth.login(sessionManager, loginUsernameState.value, passwordState.value)
+                val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
                 if (userInfo != null) {
                     isLoggedInState.value = true
                     userInfoState.value = userInfo
@@ -198,10 +197,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
-
-
 
     @Composable
     fun AttendanceScreen(onBack: () -> Unit) {
@@ -236,7 +231,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
 
     fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
         return try {

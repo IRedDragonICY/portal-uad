@@ -12,8 +12,9 @@ data class UserInfo(
     var sks: String? = null
 )
 
+
 class SessionManager(context: Context) {
-    private val sharedPref = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
+    private val sharedPref = context.getSharedPreferences("Portal UAD", Context.MODE_PRIVATE)
     private val gson = Gson()
 
     fun saveSession(session: String) {
@@ -29,17 +30,21 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun saveCredentials(username: String, password: String) {
+    fun saveCredentials(credentials: Credentials) {
         sharedPref.edit {
-            putString("username", username)
-            putString("password", password)
+            putString("username", credentials.username)
+            putString("password", credentials.password)
         }
     }
 
-    fun loadCredentials(): Pair<String?, String?> {
+    fun loadCredentials(): Credentials? {
         val username = sharedPref.getString("username", null)
         val password = sharedPref.getString("password", null)
-        return Pair(username, password)
+        return if (username != null && password != null) {
+            Credentials(username, password)
+        } else {
+            null
+        }
     }
 
     fun clearSession() {

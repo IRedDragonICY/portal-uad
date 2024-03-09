@@ -4,7 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Connection
 import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
+
+data class Credentials(val username: String, val password: String)
 
 class Auth {
     companion object {
@@ -13,57 +14,42 @@ class Auth {
         private const val DASHBOARD_URL = "https://portal.uad.ac.id/dashboard"
     }
 
-    suspend fun loginPortal(username: String, password: String): Connection.Response = withContext(Dispatchers.IO) {
-        return@withContext try {
-            Jsoup.connect(LOGIN_URL)
-                .method(Connection.Method.POST)
-                .data("login", username, "password", password, "remember", "1")
-                .execute()
-        } catch (e: Exception) {
-            // handle exception
-            throw e
-        }
+    private suspend fun executeConnection(url: String, method: Connection.Method, credentials: Credentials? = null): Connection.Response = withContext(Dispatchers.IO) {
+        return@withContext Jsoup.connect(url)
+            .method(method)
+            .apply { if (method == Connection.Method.POST && credentials != null) data("login", credentials.username, "password", credentials.password, "remember", "1") }
+            .execute()
     }
 
-    suspend fun logoutPortal(): Boolean = withContext(Dispatchers.IO) {
-        return@withContext try {
-            Jsoup.connect(LOGOUT_URL)
-                .method(Connection.Method.GET)
-                .execute()
-                .statusCode() == 200
-        } catch (e: Exception) {
-            // handle exception
-            throw e
-        }
-    }
+    suspend fun loginPortal(credentials: Credentials) = executeConnection(LOGIN_URL, Connection.Method.POST, credentials)
+
+    suspend fun logoutPortal(): Boolean = executeConnection(LOGOUT_URL, Connection.Method.GET).statusCode() == 200
 
     suspend fun checkLogin(response: Connection.Response): Pair<Boolean, String> = withContext(Dispatchers.IO) {
-        val doc: Document = response.parse()
+        val doc = response.parse()
         val loginForm = doc.select("div.form-login")
-        if (!loginForm.isEmpty()) {
+        if (loginForm.isNotEmpty()) {
             val errorElement = doc.select("div.form-group.has-error div.help-block")
-            val errorMessage = if (!errorElement.isEmpty()) errorElement.text() else "Unknown error"
+            val errorMessage = if (errorElement.isNotEmpty()) errorElement.text() else "Unknown error"
             return@withContext Pair(false, errorMessage)
         }
         return@withContext Pair(true, "")
     }
 
-    suspend fun getUserInfo(sessionCookie: String): UserInfo = withContext(Dispatchers.IO) {
-        val response = try {
-            Jsoup.connect(DASHBOARD_URL)
-                .cookie("portal_session", sessionCookie)
-                .method(Connection.Method.GET)
-                .execute()
-        } catch (e: Exception) {
-            // handle exception
-            throw e
-        }
+    private suspend fun getResponseWithCookie(url: String, cookieName: String, cookieValue: String): Connection.Response = withContext(Dispatchers.IO) {
+        return@withContext Jsoup.connect(url)
+            .cookie(cookieName, cookieValue)
+            .method(Connection.Method.GET)
+            .execute()
+    }
 
-        val doc: Document = response.parse()
+    suspend fun getUserInfo(sessionCookie: String): UserInfo = withContext(Dispatchers.IO) {
+        val response = getResponseWithCookie(DASHBOARD_URL, "portal_session", sessionCookie)
+        val doc = response.parse()
         val userElement = doc.select("a.dropdown-toggle")
         var username = ""
         var avatarUrl = ""
-        if (!userElement.isEmpty()) {
+        if (userElement.isNotEmpty()) {
             username = userElement.select("span.username.username-hide-mobile").first()?.text() ?: ""
             avatarUrl = userElement.select("img.img-circle").first()?.attr("src") ?: ""
         }
@@ -73,33 +59,33 @@ class Auth {
         return@withContext UserInfo(username, avatarUrl, ipk, sks)
     }
 
-    suspend fun autoLogin(sessionManager: SessionManager): UserInfo? {
-        val (username, password) = sessionManager.loadCredentials()
-        if (username != null && password != null) {
-            val response = loginPortal(username, password)
-            val sessionCookie = response.cookie("portal_session")
-            val (isLoggedIn, errorMessage) = checkLogin(response)
-            if (isLoggedIn) {
-                sessionManager.saveSession(sessionCookie)
-                val userInfo = getUserInfo(sessionCookie)
-                sessionManager.saveUserInfo(userInfo)
-                return userInfo
-            }
-        }
-        return null
-    }
-
-    suspend fun login(sessionManager: SessionManager, username: String, password: String): Pair<UserInfo?, String?> {
-        val response = loginPortal(username, password)
+    private suspend fun processLogin(sessionManager: SessionManager, credentials: Credentials): Pair<UserInfo?, String?> {
+        val response = loginPortal(credentials)
         val sessionCookie = response.cookie("portal_session")
         val (isLoggedIn, errorMessage) = checkLogin(response)
         if (isLoggedIn) {
             sessionManager.saveSession(sessionCookie)
-            sessionManager.saveCredentials(username, password)
             val userInfo = getUserInfo(sessionCookie)
             sessionManager.saveUserInfo(userInfo)
             return Pair(userInfo, null)
         }
         return Pair(null, errorMessage)
+    }
+
+    suspend fun autoLogin(sessionManager: SessionManager): UserInfo? {
+        val credentials = sessionManager.loadCredentials()
+        if (credentials != null) {
+            val (userInfo, _) = processLogin(sessionManager, credentials)
+            return userInfo
+        }
+        return null
+    }
+
+    suspend fun login(sessionManager: SessionManager, credentials: Credentials): Pair<UserInfo?, String?> {
+        val (userInfo, errorMessage) = processLogin(sessionManager, credentials)
+        if (userInfo != null) {
+            sessionManager.saveCredentials(credentials)
+        }
+        return Pair(userInfo, errorMessage)
     }
 }
