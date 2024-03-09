@@ -8,10 +8,10 @@ env:
   playstore_name: Portal UAD
 
 on:
-    push:
-        branches:
-        - main
-    workflow_dispatch:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,13 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Set Current Date As Env Variable
-      - name: Set current date as env variable
-        run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      # Set Current Date and Time As Env Variable
+      - name: Set current date and time as env variable
+        run: echo "date_time_now=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
 
       # Set Repository Name As Env Variable
       - name: Set repository name as env variable
-        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \\\$2}')" >> $GITHUB_ENV
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \\\\$2}')" >> $GITHUB_ENV
 
       - name: Set Up JDK
         uses: actions/setup-java@v3
@@ -65,10 +65,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.date_today }}
-          release_name: Release ${{ env.date_today }}
+          tag_name: ${{ env.date_time_now }}
+          release_name: Release ${{ env.date_time_now }}
           body: |
-            Release of ${{ env.date_today }}
+            Release of ${{ env.date_time_now }}
           draft: false
           prerelease: true
 
