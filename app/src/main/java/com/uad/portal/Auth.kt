@@ -25,6 +25,7 @@ class Auth {
         }
     }
 
+
     suspend fun logoutPortal(): Boolean = withContext(Dispatchers.IO) {
         return@withContext try {
             Jsoup.connect(LOGOUT_URL)
