@@ -8,7 +8,6 @@ env:
   playstore_name: Portal UAD
 
 on:
-
   push:
     branches:
       - 'release/**'
@@ -18,9 +17,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
 
@@ -30,7 +27,7 @@ jobs:
 
       # Set Repository Name As Env Variable
       - name: Set repository name as env variable
-        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \$2}')" >> $GITHUB_ENV
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \\$2}')" >> $GITHUB_ENV
 
       - name: Set Up JDK
         uses: actions/setup-java@v3
@@ -68,14 +65,14 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.date_today }}
           release_name: Release ${{ env.date_today }}
           body: |
             Release of ${{ env.date_today }}
           draft: false
-          prerelease: false
+          prerelease: true
 
       # Upload APK Debug to GitHub release
       - name: Upload APK Debug - ${{ env.repository_name }}
@@ -83,7 +80,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./${{ env.main_project_module }}/build/outputs/apk/debug/app-debug.apk
           asset_name: app-debug.apk
           asset_content_type: application/vnd.android.package-archive
