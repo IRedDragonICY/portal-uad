@@ -1,7 +1,10 @@
 name: Generated APK AAB (Upload - Create Artifact To Github Action)
 
 env:
+  # The name of the main module repository
   main_project_module: app
+
+  # The name of the Play Store
   playstore_name: Portal UAD
 
 on:
@@ -14,42 +17,54 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # updated version
+      - uses: actions/checkout@v3
 
+      # Set Current Date and Time As Env Variable
       - name: Set current date and time as env variable
         run: echo "date_time_now=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
 
+      # Set Repository Name As Env Variable
       - name: Set repository name as env variable
         run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \\\\\$2}')" >> $GITHUB_ENV
 
       - name: Set Up JDK
-        uses: actions/setup-java@v4 # updated version
+        uses: actions/setup-java@v3
         with:
-          distribution: 'zulu'
+          distribution: 'zulu' # See 'Supported distributions' for available options
           java-version: '17'
           cache: 'gradle'
 
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
 
+      # Run Tests Build
       - name: Run gradle tests
         run: ./gradlew test
 
+      # Run Build Project
       - name: Build gradle project
         run: ./gradlew build
 
+      # Create APK Debug
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         run: ./gradlew ${{ env.main_project_module }}:assembleDebug
 
+      # Create APK Release
       - name: Build apk release project (APK) - ${{ env.main_project_module }} module
         run: ./gradlew ${{ env.main_project_module }}:assembleRelease
 
+      # Create Bundle AAB Release
+      # Noted for main module build [main_project_module]:bundleRelease
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
         run: ./gradlew ${{ env.main_project_module }}:bundleRelease
 
+      - name: List outputs
+        run: ls -R ./${{ env.main_project_module }}/build/outputs/
+
+      # Create a GitHub release
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v2 # updated version
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -60,8 +75,9 @@ jobs:
           draft: false
           prerelease: true
 
+      # Upload APK Debug to GitHub release
       - name: Upload APK Debug - ${{ env.repository_name }}
-        uses: actions/upload-release-asset@v2 # updated version
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -70,8 +86,9 @@ jobs:
           asset_name: app-debug.apk
           asset_content_type: application/vnd.android.package-archive
 
+      # Upload APK Release to GitHub release
       - name: Upload APK Release - ${{ env.repository_name }}
-        uses: actions/upload-release-asset@v2 # updated version
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -80,8 +97,9 @@ jobs:
           asset_name: app-release.apk
           asset_content_type: application/vnd.android.package-archive
 
+      # Upload AAB (App Bundle) Release to GitHub release
       - name: Upload AAB (App Bundle) Release - ${{ env.repository_name }}
-        uses: actions/upload-release-asset@v2 # updated version
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
