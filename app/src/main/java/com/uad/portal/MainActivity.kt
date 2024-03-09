@@ -1,4 +1,5 @@
 package com.uad.portal
+import androidx.compose.ui.input.key.Key
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,7 +14,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -119,6 +126,7 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun LoginForm(
         userInfoState: MutableState<UserInfo>,
@@ -130,12 +138,23 @@ class MainActivity : ComponentActivity() {
         val passwordVisibilityState = remember { mutableStateOf(false) }
         val loginErrorMessageState = remember { mutableStateOf("") }
 
+        val passwordFocusRequester = remember { FocusRequester() }
+
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
             OutlinedTextField(
                 value = loginUsernameState.value,
                 onValueChange = { loginUsernameState.value = it },
                 label = { Text("Username") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
+                modifier = Modifier.onPreviewKeyEvent { keyEvent ->
+                    if (keyEvent.key == Key.Enter) {
+                        passwordFocusRequester.requestFocus()
+                        true
+                    } else {
+                        false
+                    }
+                }
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -160,7 +179,8 @@ class MainActivity : ComponentActivity() {
                             contentDescription = if (passwordVisibilityState.value) "Hide password" else "Show password"
                         )
                     }
-                }
+                },
+                modifier = Modifier.focusRequester(passwordFocusRequester)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { coroutineScope.launch {
@@ -180,6 +200,9 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+
+
 
 
     @Composable
