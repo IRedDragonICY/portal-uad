@@ -82,14 +82,3 @@ jobs:
           asset_path: ./${{ env.main_project_module }}/build/outputs/apk/debug/app-debug.apk
           asset_name: app-debug.apk
           asset_content_type: application/vnd.android.package-archive
-
-      # Upload AAB (App Bundle) Release to GitHub release
-      - name: Upload AAB (App Bundle) Release - ${{ env.repository_name }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.main_project_module }}/build/outputs/bundle/release/app.aab
-          asset_name: app.aab
-          asset_content_type: application/vnd.android.package-archive
