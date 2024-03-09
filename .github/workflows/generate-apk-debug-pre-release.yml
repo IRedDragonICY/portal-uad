@@ -30,7 +30,7 @@ jobs:
       - name: Set Up JDK
         uses: actions/setup-java@v3
         with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
+          distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
 
@@ -49,9 +49,6 @@ jobs:
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         run: ./gradlew ${{ env.main_project_module }}:assembleDebug
 
-      # Create APK Release
-      - name: Build apk release project (APK) - ${{ env.main_project_module }} module
-        run: ./gradlew ${{ env.main_project_module }}:assembleRelease
 
       # Create Bundle AAB Release
       # Noted for main module build [main_project_module]:bundleRelease
@@ -84,17 +81,6 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./${{ env.main_project_module }}/build/outputs/apk/debug/app-debug.apk
           asset_name: app-debug.apk
-          asset_content_type: application/vnd.android.package-archive
-
-      # Upload APK Release to GitHub release
-      - name: Upload APK Release - ${{ env.repository_name }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.main_project_module }}/build/outputs/apk/release/app-release.apk
-          asset_name: app-release.apk
           asset_content_type: application/vnd.android.package-archive
 
       # Upload AAB (App Bundle) Release to GitHub release
