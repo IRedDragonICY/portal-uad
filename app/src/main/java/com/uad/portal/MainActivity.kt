@@ -79,21 +79,21 @@ class MainActivity : ComponentActivity() {
         val isAttendanceScreen = remember { mutableStateOf(false) }
 
         if (isAttendanceScreen.value) {
-            AttendanceScreen(onBack = { isAttendanceScreen.value = false })
+            AttendanceView(onBack = { isAttendanceScreen.value = false })
         } else if (isLoggedInState.value) {
-            LoggedInScreen(
+            HomeView(
                 userInfoState,
                 isLoggedInState,
                 coroutineScope,
                 onAttendanceClick = { isAttendanceScreen.value = true }
             )
         } else {
-            LoginForm(userInfoState, isLoggedInState, coroutineScope)
+            LoginView(userInfoState, isLoggedInState, coroutineScope)
         }
     }
 
     @Composable
-    private fun LoggedInScreen(
+    private fun HomeView(
         userInfoState: MutableState<UserInfo?>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope,
@@ -134,7 +134,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun LoginForm(
+    private fun LoginView(
         userInfoState: MutableState<UserInfo?>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope
@@ -220,7 +220,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun AttendanceScreen(onBack: () -> Unit) {
+    private fun AttendanceView(onBack: () -> Unit) {
         val coroutineScope = rememberCoroutineScope()
         val attendanceInfo = remember { mutableStateOf(emptyList<Attendance>()) }
 
