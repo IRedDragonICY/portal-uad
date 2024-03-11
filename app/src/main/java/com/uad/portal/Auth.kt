@@ -21,11 +21,11 @@ class Auth {
             .execute()
     }
 
-    suspend fun loginPortal(credentials: Credentials) = executeConnection(LOGIN_URL, Connection.Method.POST, credentials)
+    private suspend fun loginPortal(credentials: Credentials) = executeConnection(LOGIN_URL, Connection.Method.POST, credentials)
 
     suspend fun logoutPortal(): Boolean = executeConnection(LOGOUT_URL, Connection.Method.GET).statusCode() == 200
 
-    suspend fun checkLogin(response: Connection.Response): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    private suspend fun checkLogin(response: Connection.Response): Pair<Boolean, String> = withContext(Dispatchers.IO) {
         val doc = response.parse()
         val loginForm = doc.select("div.form-login")
         if (loginForm.isNotEmpty()) {
@@ -43,7 +43,7 @@ class Auth {
             .execute()
     }
 
-    suspend fun getUserInfo(sessionCookie: String): UserInfo = withContext(Dispatchers.IO) {
+    private suspend fun getUserInfo(sessionCookie: String): UserInfo = withContext(Dispatchers.IO) {
         val response = getResponseWithCookie(DASHBOARD_URL, "portal_session", sessionCookie)
         val doc = response.parse()
         val userElement = doc.select("a.dropdown-toggle")
@@ -63,7 +63,7 @@ class Auth {
         val response = loginPortal(credentials)
         val sessionCookie = response.cookie("portal_session")
         val (isLoggedIn, errorMessage) = checkLogin(response)
-        if (isLoggedIn) {
+        if (isLoggedIn && sessionCookie != null) {
             sessionManager.saveSession(sessionCookie)
             val userInfo = getUserInfo(sessionCookie)
             sessionManager.saveUserInfo(userInfo)
@@ -71,6 +71,7 @@ class Auth {
         }
         return Pair(null, errorMessage)
     }
+
 
     suspend fun autoLogin(sessionManager: SessionManager): UserInfo? {
         val credentials = sessionManager.loadCredentials()
