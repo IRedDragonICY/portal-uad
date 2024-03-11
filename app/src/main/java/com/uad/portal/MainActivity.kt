@@ -77,15 +77,19 @@ class MainActivity : ComponentActivity() {
         val userInfoState = remember { mutableStateOf(sessionManager.loadSession()?.userInfo) }
         val coroutineScope = rememberCoroutineScope()
         val isAttendanceScreen = remember { mutableStateOf(false) }
+        val isSettingsScreen = remember { mutableStateOf(false) }
 
         if (isAttendanceScreen.value) {
             AttendanceView(onBack = { isAttendanceScreen.value = false })
+        } else if (isSettingsScreen.value) {
+            SettingsView(onBack = { isSettingsScreen.value = false })
         } else if (isLoggedInState.value) {
             HomeView(
                 userInfoState,
                 isLoggedInState,
                 coroutineScope,
-                onAttendanceClick = { isAttendanceScreen.value = true }
+                onAttendanceClick = { isAttendanceScreen.value = true },
+                onSettingsClick = { isSettingsScreen.value = true }
             )
         } else {
             LoginView(userInfoState, isLoggedInState, coroutineScope)
@@ -97,7 +101,9 @@ class MainActivity : ComponentActivity() {
         userInfoState: MutableState<UserInfo?>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope,
-        onAttendanceClick: () -> Unit
+        onAttendanceClick: () -> Unit,
+        onSettingsClick: () -> Unit
+
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
             Text("You are logged in as ${userInfoState.value?.username ?: "Unknown"}")
@@ -113,9 +119,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onAttendanceClick) {
                 Text("Absensi")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onSettingsClick) {
+                Text("Settings")
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
@@ -132,6 +144,19 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+
+    @Composable
+    private fun SettingsView(
+        onBack: () -> Unit
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
+            Button(onClick = onBack) {
+                Text("Kembali")
+            }
+        }
+    }
+
 
     @Composable
     private fun LoginView(
