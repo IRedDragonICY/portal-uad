@@ -12,14 +12,30 @@ data class UserInfo(
     var sks: String? = null
 )
 
+data class Session(
+    var session: String? = null,
+    var userInfo: UserInfo? = null,
+    var credentials: Credentials? = null
+)
 
 class SessionManager(context: Context) {
     private val sharedPref = context.getSharedPreferences("Portal UAD", Context.MODE_PRIVATE)
     private val gson = Gson()
 
-    fun saveSession(session: String) {
+    fun saveSession(session: Session) {
+        val sessionJson = gson.toJson(session)
         sharedPref.edit {
-            putString("session", session)
+            putString("session", sessionJson)
+        }
+    }
+
+    fun loadSession(): Session? {
+        val sessionJson = sharedPref.getString("session", null)
+        return if (sessionJson != null) {
+            val type = object : TypeToken<Session>() {}.type
+            gson.fromJson(sessionJson, type)
+        } else {
+            null
         }
     }
 
@@ -31,17 +47,17 @@ class SessionManager(context: Context) {
     }
 
     fun saveCredentials(credentials: Credentials) {
+        val credentialsJson = gson.toJson(credentials)
         sharedPref.edit {
-            putString("username", credentials.username)
-            putString("password", credentials.password)
+            putString("credentials", credentialsJson)
         }
     }
 
     fun loadCredentials(): Credentials? {
-        val username = sharedPref.getString("username", null)
-        val password = sharedPref.getString("password", null)
-        return if (username != null && password != null) {
-            Credentials(username, password)
+        val credentialsJson = sharedPref.getString("credentials", null)
+        return if (credentialsJson != null) {
+            val type = object : TypeToken<Credentials>() {}.type
+            gson.fromJson(credentialsJson, type)
         } else {
             null
         }
@@ -51,22 +67,7 @@ class SessionManager(context: Context) {
         sharedPref.edit {
             remove("session")
             remove("userInfo")
-            remove("username")
-            remove("password")
-        }
-    }
-
-    fun loadSession(): String? {
-        return sharedPref.getString("session", null)
-    }
-
-    fun loadUserInfo(): UserInfo {
-        val userInfoJson = sharedPref.getString("userInfo", null)
-        return if (userInfoJson != null) {
-            val type = object : TypeToken<UserInfo>() {}.type
-            gson.fromJson(userInfoJson, type)
-        } else {
-            UserInfo()
+            remove("credentials")
         }
     }
 }

@@ -56,11 +56,11 @@ class MainActivity : ComponentActivity() {
         auth = Auth()
         setContent {
             PortalUADTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         AppContent()
                     }
                 }
@@ -72,39 +72,47 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun AppContent() {
+    private fun AppContent() {
         val isLoggedInState = remember { mutableStateOf(sessionManager.loadSession() != null) }
-        val userInfoState = remember { mutableStateOf(sessionManager.loadUserInfo()) }
+        val userInfoState = remember { mutableStateOf(sessionManager.loadSession()?.userInfo) }
         val coroutineScope = rememberCoroutineScope()
         val isAttendanceScreen = remember { mutableStateOf(false) }
 
         if (isAttendanceScreen.value) {
             AttendanceScreen(onBack = { isAttendanceScreen.value = false })
         } else if (isLoggedInState.value) {
-            LoggedInScreen(userInfoState, isLoggedInState, coroutineScope, onAttendanceClick = { isAttendanceScreen.value = true })
+            LoggedInScreen(
+                userInfoState,
+                isLoggedInState,
+                coroutineScope,
+                onAttendanceClick = { isAttendanceScreen.value = true }
+            )
         } else {
             LoginForm(userInfoState, isLoggedInState, coroutineScope)
         }
     }
 
     @Composable
-    fun LoggedInScreen(
-        userInfoState: MutableState<UserInfo>,
+    private fun LoggedInScreen(
+        userInfoState: MutableState<UserInfo?>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope,
         onAttendanceClick: () -> Unit
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-            Text("You are logged in as ${userInfoState.value.username}")
-            Text("Your IPK is ${userInfoState.value.ipk}")
-            Text("Your total SKS is ${userInfoState.value.sks}")
-            if (userInfoState.value.avatarUrl?.isNotEmpty() == true) {
-                Image(
-                    painter = rememberImagePainter(userInfoState.value.avatarUrl),
-                    contentDescription = "User Avatar",
-                    modifier = Modifier.size(100.dp)
-                )
+            Text("You are logged in as ${userInfoState.value?.username ?: "Unknown"}")
+            Text("Your IPK is ${userInfoState.value?.ipk ?: "Unknown"}")
+            Text("Your total SKS is ${userInfoState.value?.sks ?: "Unknown"}")
+            userInfoState.value?.avatarUrl?.let {
+                if (it.isNotEmpty()) {
+                    Image(
+                        painter = rememberImagePainter(it),
+                        contentDescription = "User Avatar",
+                        modifier = Modifier.size(100.dp)
+                    )
+                }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onAttendanceClick) {
                 Text("Absensi")
@@ -125,10 +133,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     @Composable
-    fun LoginForm(
-        userInfoState: MutableState<UserInfo>,
+    private fun LoginForm(
+        userInfoState: MutableState<UserInfo?>,
         isLoggedInState: MutableState<Boolean>,
         coroutineScope: CoroutineScope
     ) {
@@ -191,15 +198,19 @@ class MainActivity : ComponentActivity() {
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { coroutineScope.launch {
-                val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
-                if (userInfo != null) {
-                    isLoggedInState.value = true
-                    userInfoState.value = userInfo
-                } else {
-                    loginErrorMessageState.value = errorMessage ?: "Failed to login"
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
+                        if (userInfo != null) {
+                            isLoggedInState.value = true
+                            userInfoState.value = userInfo
+                        } else {
+                            loginErrorMessageState.value = errorMessage ?: "Failed to login"
+                        }
+                    }
                 }
-            }}) {
+            ) {
                 Text("Login")
             }
             if (loginErrorMessageState.value.isNotEmpty()) {
@@ -209,13 +220,13 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun AttendanceScreen(onBack: () -> Unit) {
+    private fun AttendanceScreen(onBack: () -> Unit) {
         val coroutineScope = rememberCoroutineScope()
         val attendanceInfo = remember { mutableStateOf(emptyList<Attendance>()) }
 
         LaunchedEffect(Unit) {
             coroutineScope.launch(Dispatchers.IO) {
-                attendanceInfo.value = getAttendanceInfo(sessionManager.loadSession()!!)
+                attendanceInfo.value = getAttendanceInfo(sessionManager.loadSession()?.session!!)
             }
         }
 
@@ -253,16 +264,18 @@ class MainActivity : ComponentActivity() {
             val infoElement = doc.select("div.note.note-info")
             if (!infoElement.isEmpty()) {
                 if (infoElement.text().contains("Tidak ada Presensi Kelas Matakuliah saat ini.")) {
-                    return listOf(Attendance(
-                        courseClass = "N/A",
-                        semester = "N/A",
-                        meetingNumber = 0,
-                        meetingDate = "N/A",
-                        material = "N/A",
-                        attendanceStart = "N/A",
-                        attendanceStatus = "N/A",
-                        information = "Tidak ada Presensi Kelas Matakuliah saat ini."
-                    ))
+                    return listOf(
+                        Attendance(
+                            courseClass = "N/A",
+                            semester = "N/A",
+                            meetingNumber = 0,
+                            meetingDate = "N/A",
+                            material = "N/A",
+                            attendanceStart = "N/A",
+                            attendanceStatus = "N/A",
+                            information = "Tidak ada Presensi Kelas Matakuliah saat ini."
+                        )
+                    )
                 }
             }
             val attendanceTables = doc.select("div.m-heading-1.border-green.m-bordered")
@@ -290,16 +303,18 @@ class MainActivity : ComponentActivity() {
                 )
             }
         } catch (e: Exception) {
-            listOf(Attendance(
-                courseClass = "Error: ${e.message}",
-                semester = "",
-                meetingNumber = 0,
-                meetingDate = "",
-                material = "",
-                attendanceStart = "",
-                attendanceStatus = "",
-                information = ""
-            ))
+            listOf(
+                Attendance(
+                    courseClass = "Error: ${e.message}",
+                    semester = "",
+                    meetingNumber = 0,
+                    meetingDate = "",
+                    material = "",
+                    attendanceStart = "",
+                    attendanceStatus = "",
+                    information = ""
+                )
+            )
         }
     }
 }

@@ -64,9 +64,8 @@ class Auth {
         val sessionCookie = response.cookie("portal_session")
         val (isLoggedIn, errorMessage) = checkLogin(response)
         if (isLoggedIn && sessionCookie != null) {
-            sessionManager.saveSession(sessionCookie)
             val userInfo = getUserInfo(sessionCookie)
-            sessionManager.saveUserInfo(userInfo)
+            sessionManager.saveSession(Session(sessionCookie, userInfo))
             return Pair(userInfo, null)
         }
         return Pair(null, errorMessage)
