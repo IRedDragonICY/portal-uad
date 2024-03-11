@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -66,7 +67,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         lifecycleScope.launch {
-            val userInfo = auth.autoLogin(sessionManager)
+            auth.autoLogin(sessionManager)
         }
     }
 
@@ -125,7 +126,6 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun LoginForm(
         userInfoState: MutableState<UserInfo>,
@@ -152,6 +152,9 @@ class MainActivity : ComponentActivity() {
                     } else {
                         false
                     }
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.AccountCircle, contentDescription = "Username")
                 }
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -160,15 +163,17 @@ class MainActivity : ComponentActivity() {
                 onValueChange = { credentialsState.value = credentialsState.value.copy(password = it) },
                 label = { Text("Password") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { coroutineScope.launch {
-                    val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
-                    if (userInfo != null) {
-                        isLoggedInState.value = true
-                        userInfoState.value = userInfo
-                    } else {
-                        loginErrorMessageState.value = "Failed to login"
+                keyboardActions = KeyboardActions(onDone = {
+                    coroutineScope.launch {
+                        val (userInfo, _) = auth.login(sessionManager, credentialsState.value)
+                        if (userInfo != null) {
+                            isLoggedInState.value = true
+                            userInfoState.value = userInfo
+                        } else {
+                            loginErrorMessageState.value = "Failed to login"
+                        }
                     }
-                }}),
+                }),
                 visualTransformation = if (passwordVisibilityState.value) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisibilityState.value = !passwordVisibilityState.value }) {
@@ -178,8 +183,13 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 },
-                modifier = Modifier.focusRequester(passwordFocusRequester)
+                singleLine = true,
+                modifier = Modifier.focusRequester(passwordFocusRequester),
+                leadingIcon = {
+                    Icon(Icons.Filled.Lock, contentDescription = "Password")
+                }
             )
+
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { coroutineScope.launch {
                 val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
@@ -232,7 +242,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
+    private fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
         return try {
             val response = Jsoup.connect("https://portal.uad.ac.id/presensi/Kuliah")
                 .cookie("portal_session", sessionCookie)
