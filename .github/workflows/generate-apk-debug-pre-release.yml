@@ -67,18 +67,6 @@ jobs:
           upload_url=$(echo $response | jq -r .data)
           echo "::set-output name=upload_url::$upload_url"
 
-      - name: Upload APK to VirusTotal and get report URL
-        id: virustotal
-        run: |
-          apk_path=./${{ env.main_project_module }}/build/outputs/apk/debug/app-debug.apk
-          response=$(curl --request POST "${{ steps.get_upload_url.outputs.upload_url }}" \
-          --header 'x-apikey: ${{ secrets.VT_API_KEY }}' \
-          --form 'file=@'$apk_path)
-          echo "Response: $response"
-          resource=$(echo $response | jq -r .data.id)
-          echo "::set-output name=report_url::https://www.virustotal.com/gui/file/$resource/detection"
-
-
       # Create a GitHub release
       - name: Create Release
         id: create_release
@@ -96,6 +84,31 @@ jobs:
             ${{ steps.virustotal.outputs.report_url }}
           draft: false
           prerelease: true
+
+      # Get VirusTotal upload URL
+      - name: Get VirusTotal upload URL
+        id: get_upload_url
+        run: |
+          response=$(curl --request GET 'https://www.virustotal.com/api/v3/files/upload_url' --header 'x-apikey: ${{ secrets.VT_API_KEY }}')
+          upload_url=$(echo $response | jq -r .data)
+          echo "::set-output name=upload_url::$upload_url"
+
+      # Upload APK to VirusTotal
+      - name: Upload APK to VirusTotal
+        id: upload_to_virustotal
+        run: |
+          apk_path=./${{ env.main_project_module }}/build/outputs/apk/debug/app-debug.apk
+          response=$(curl --request POST '${{ steps.get_upload_url.outputs.upload_url }}' --form 'file=@$apk_path')
+          id=$(echo $response | jq -r .data.id)
+          echo "::set-output name=id::$id"
+
+      # Get VirusTotal report
+      - name: Get VirusTotal report
+        id: get_virustotal_report
+        run: |
+          response=$(curl --request GET "https://www.virustotal.com/api/v3/analyses/${{ steps.upload_to_virustotal.outputs.id }}" --header 'x-apikey: ${{ secrets.VT_API_KEY }}')
+          report_url=$(echo $response | jq -r .meta.self)
+          echo "::set-output name=report_url::$report_url"
 
       # Upload APK Debug to GitHub release
       - name: Upload APK Debug - ${{ env.repository_name }}
