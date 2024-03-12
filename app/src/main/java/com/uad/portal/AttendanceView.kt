@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 data class Attendance(
     val courseClass: String,
@@ -34,10 +35,11 @@ fun AttendanceView(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val attendanceInfo = remember { mutableStateOf(emptyList<Attendance>()) }
+    val session = sessionManager.loadSession()?.session!!
 
     LaunchedEffect(Unit) {
         coroutineScope.launch(Dispatchers.IO) {
-            attendanceInfo.value = getAttendanceInfo(sessionManager.loadSession()?.session!!)
+            attendanceInfo.value = getAttendanceInfo(session)
         }
     }
 
@@ -47,28 +49,16 @@ fun AttendanceView(
         }
         Spacer(modifier = Modifier.height(16.dp))
         if (attendanceInfo.value.isNotEmpty()) {
-            if (attendanceInfo.value[0].information == "Tidak ada Presensi Kelas Matakuliah saat ini.") {
-                Text(attendanceInfo.value[0].information)
-            } else {
-                attendanceInfo.value.forEach { attendance ->
-                    Text("Matakuliah / Kelas: ${attendance.courseClass}")
-                    Text("Semester: ${attendance.semester}")
-                    Text("Pertemuan ke-: ${attendance.meetingNumber}")
-                    Text("Tgl. Pertemuan: ${attendance.meetingDate}")
-                    Text("Materi: ${attendance.material}")
-                    Text("Mulai Presensi: ${attendance.attendanceStart}")
-                    Text("Presensi: ${attendance.attendanceStatus}")
-                    Text("Informasi: ${attendance.information}")
-                    // Add condition to check if attendance is marked or not
+            attendanceInfo.value.forEach { attendance ->
+                if (attendance.information == "Tidak ada Presensi Kelas Matakuliah saat ini.") {
+                    Text(attendance.information)
+                } else {
+                    DisplayAttendanceInfo(attendance)
                     if (attendance.attendanceStatus == "Not Marked") {
                         Button(onClick = {
                             coroutineScope.launch(Dispatchers.IO) {
-                                val success = markAttendance(sessionManager.loadSession()?.session!!, attendance.klsdtId, attendance.presklsId)
-                                if (success) {
-                                    // Refresh attendance info
-                                    attendanceInfo.value = getAttendanceInfo(sessionManager.loadSession()?.session!!)
-                                } else {
-                                    // Handle failure
+                                if (markAttendance(session, attendance.klsdtId, attendance.presklsId)) {
+                                    attendanceInfo.value = getAttendanceInfo(session)
                                 }
                             }
                         }) {
@@ -82,65 +72,64 @@ fun AttendanceView(
     }
 }
 
+@Composable
+private fun DisplayAttendanceInfo(attendance: Attendance) {
+    Text("Matakuliah / Kelas: ${attendance.courseClass}")
+    Text("Semester: ${attendance.semester}")
+    Text("Pertemuan ke-: ${attendance.meetingNumber}")
+    Text("Tgl. Pertemuan: ${attendance.meetingDate}")
+    Text("Materi: ${attendance.material}")
+    Text("Mulai Presensi: ${attendance.attendanceStart}")
+    Text("Presensi: ${attendance.attendanceStatus}")
+    Text("Informasi: ${attendance.information}")
+}
+
 fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
-    fun createAttendance(courseClass: String, semester: String, meetingNumber: Int, meetingDate: String, material: String, attendanceStart: String, attendanceStatus: String, information: String, klsdtId: String, presklsId: String) =
-        Attendance(courseClass, semester, meetingNumber, meetingDate, material, attendanceStart, attendanceStatus, information, klsdtId, presklsId)
+    val url = "https://portal.uad.ac.id/presensi/Kuliah"
+    val response = connectJsoup(url, sessionCookie, method = Connection.Method.GET)
+    return parseAttendanceInfo(response)
+}
 
-    fun connectJsoup(url: String, cookie: String, method: Connection.Method): Connection.Response =
-        Jsoup.connect(url).cookie("portal_session", cookie).method(method).execute()
+fun markAttendance(sessionCookie: String, klsdtId: String, presklsId: String): Boolean {
+    val url = "https://portal.uad.ac.id/presensi/Kuliah/index"
+    val data = mapOf("klsdt_id" to klsdtId, "preskls_id" to presklsId, "action" to "btnpresensi")
+    val response = connectJsoup(url, sessionCookie, data, Connection.Method.POST)
+    return response.statusCode() == 200
+}
 
+private fun connectJsoup(url: String, cookie: String, data: Map<String, String> = emptyMap(), method: Connection.Method): Connection.Response =
+    Jsoup.connect(url).cookie("portal_session", cookie).data(data).method(method).execute()
+
+private fun parseAttendanceInfo(response: Connection.Response): List<Attendance> {
     return try {
-        val response = connectJsoup("https://portal.uad.ac.id/presensi/Kuliah", sessionCookie, Connection.Method.GET)
         val doc: Document = response.parse()
         val infoElement = doc.select("div.note.note-info")
-        if (!infoElement.isEmpty()) {
-            if (infoElement.text().contains("Tidak ada Presensi Kelas Matakuliah saat ini.")) {
-                return listOf(createAttendance("N/A", "N/A", 0, "N/A", "N/A", "N/A", "N/A", "Tidak ada Presensi Kelas Matakuliah saat ini.", "", ""))
-            }
+        if (!infoElement.isEmpty() && infoElement.text().contains("Tidak ada Presensi Kelas Matakuliah saat ini.")) {
+            return listOf(Attendance("N/A", "N/A", 0, "N/A", "N/A", "N/A", "N/A", "Tidak ada Presensi Kelas Matakuliah saat ini.", "", ""))
         }
         val attendanceTables = doc.select("div.m-heading-1.border-green.m-bordered")
-
-        attendanceTables.map { table ->
-            val rows = table.select("table.table-hover.table-light tr")
-            val courseClass = rows[0].select("td")[2].text()
-            val semester = rows[1].select("td")[2].text()
-            val meetingNumber = rows[2].select("td")[2].text().toInt()
-            val meetingDate = rows[3].select("td")[2].text()
-            val material = rows[4].select("td")[2].text()
-            val attendanceStart = rows[5].select("td")[2].text()
-            val information = table.select("div.note.note-info").text().replaceFirst("Informasi", "").trim()
-
-            val klsdtId = table.select("input[name=klsdt_id]").`val`()
-            val presklsId = table.select("input[name=preskls_id]").`val`()
-
-            // Check if the "Presensi" button exists in the HTML
-            val presensiButtonExists = table.select("button[name=action][value=btnpresensi]").isNotEmpty()
-
-            // If the button exists, set attendanceStatus to "Not Marked". Otherwise, set it to "Marked".
-            val attendanceStatus = if (presensiButtonExists) "Not Marked" else "Marked"
-
-            createAttendance(courseClass, semester, meetingNumber, meetingDate, material, attendanceStart, attendanceStatus, information, klsdtId, presklsId)
-        }
-
+        attendanceTables.map { table -> parseTableToAttendance(table) }
     } catch (e: Exception) {
-        listOf(createAttendance("Error: ${e.message}", "", 0, "", "", "", "", "", "", ""))
+        listOf(Attendance("Error: ${e.message}", "", 0, "", "", "", "", "", "", ""))
     }
 }
 
+private fun parseTableToAttendance(table: Element): Attendance {
+    val rows = table.select("table.table-hover.table-light tr")
+    val courseClass = rows[0].select("td")[2].text()
+    val semester = rows[1].select("td")[2].text()
+    val meetingNumber = rows[2].select("td")[2].text().toInt()
+    val meetingDate = rows[3].select("td")[2].text()
+    val material = rows[4].select("td")[2].text()
+    val attendanceStart = rows[5].select("td")[2].text()
+    val information = table.select("div.note.note-info").text().replaceFirst("Informasi", "").trim()
 
-fun markAttendance(sessionCookie: String, klsdtId: String, presklsId: String): Boolean {
-    fun connectJsoup(url: String, cookie: String, data: Map<String, String>, method: Connection.Method): Connection.Response =
-        Jsoup.connect(url).cookie("portal_session", cookie).data(data).method(method).execute()
+    val klsdtId = table.select("input[name=klsdt_id]").`val`()
+    val presklsId = table.select("input[name=preskls_id]").`val`()
 
-    return try {
-        val response = connectJsoup(
-            "https://portal.uad.ac.id/presensi/Kuliah/index",
-            sessionCookie,
-            mapOf("klsdt_id" to klsdtId, "preskls_id" to presklsId, "action" to "btnpresensi"),
-            Connection.Method.POST
-        )
-        response.statusCode() == 200
-    } catch (e: Exception) {
-        false
-    }
+    val presensiButtonExists = table.select("button[name=action][value=btnpresensi]").isNotEmpty()
+
+    val attendanceStatus = if (presensiButtonExists) "Not Marked" else "Marked"
+
+    return Attendance(courseClass, semester, meetingNumber, meetingDate, material, attendanceStart, attendanceStatus, information, klsdtId, presklsId)
 }
