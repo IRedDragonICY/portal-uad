@@ -25,7 +25,7 @@ jobs:
 
       # Set Repository Name As Env Variable
       - name: Set repository name as env variable
-        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \\\\\$2}')" >> $GITHUB_ENV
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print \\\\\\$2}')" >> $GITHUB_ENV
 
       - name: Set Up JDK
         uses: actions/setup-java@v3
@@ -49,7 +49,6 @@ jobs:
       - name: Build apk debug project (APK) - ${{ env.main_project_module }} module
         run: ./gradlew ${{ env.main_project_module }}:assembleDebug
 
-
       # Create Bundle AAB Release
       # Noted for main module build [main_project_module]:bundleRelease
       - name: Build app bundle release (AAB) - ${{ env.main_project_module }} module
@@ -57,6 +56,12 @@ jobs:
 
       - name: List outputs
         run: ls -R ./${{ env.main_project_module }}/build/outputs/
+
+      # Get commit messages
+      - name: Get commit messages
+        id: commit_messages
+        run: |
+          echo "::set-output name=messages::$(git log --pretty=format:"%s" -10)"
 
       # Create a GitHub release
       - name: Create Release
@@ -69,6 +74,8 @@ jobs:
           release_name: Release ${{ env.date_time_now }}
           body: |
             Release of ${{ env.date_time_now }}
+            Commit Changes:
+            ${{ steps.commit_messages.outputs.messages }}
           draft: false
           prerelease: true
 
