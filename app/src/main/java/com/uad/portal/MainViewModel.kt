@@ -49,7 +49,7 @@ class MainViewModel : ViewModel() {
         if (navigationStack.isEmpty()) {
             navigateHome()
         } else {
-            when (val lastScreen = navigationStack.pop()) {
+            when (navigationStack.pop()) {
                 "Attendance" -> isAttendanceScreen.value = true
                 "Settings" -> isSettingsScreen.value = true
             }
@@ -66,13 +66,13 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    suspend fun login(credentials: Credentials): Pair<UserInfo?, String?> {
-        val (userInfo, errorMessage) = auth.login(sessionManager, credentials)
-        userInfo?.let {
+    suspend fun login(credentials: Credentials): LoginResult {
+        val loginResult = auth.login(sessionManager, credentials)
+        loginResult.userInfo?.let {
             isLoggedInState.value = true
             userInfoState.value = it
         }
-        return Pair(userInfo, errorMessage)
+        return loginResult
     }
 
 

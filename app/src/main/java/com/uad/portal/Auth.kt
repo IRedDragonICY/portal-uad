@@ -6,6 +6,7 @@ import org.jsoup.Connection
 import org.jsoup.Jsoup
 
 data class Credentials(val username: String, val password: String)
+data class LoginResult(val userInfo: UserInfo?, val errorMessage: String?)
 
 class Auth {
     companion object {
@@ -25,15 +26,15 @@ class Auth {
 
     suspend fun logoutPortal(): Boolean = executeConnection(LOGOUT_URL, Connection.Method.GET).statusCode() == 200
 
-    private suspend fun checkLogin(response: Connection.Response): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    private suspend fun checkLogin(response: Connection.Response): LoginResult = withContext(Dispatchers.IO) {
         val doc = response.parse()
         val loginForm = doc.select("div.form-login")
         if (loginForm.isNotEmpty()) {
             val errorElement = doc.select("div.form-group.has-error div.help-block")
             val errorMessage = errorElement.first()?.text() ?: "Unknown error"
-            return@withContext Pair(false, errorMessage)
+            return@withContext LoginResult(null, errorMessage)
         }
-        return@withContext Pair(true, "")
+        return@withContext LoginResult(UserInfo(), "")
     }
 
     private suspend fun getResponseWithCookie(url: String, cookieName: String, cookieValue: String): Connection.Response = withContext(Dispatchers.IO) {
@@ -59,26 +60,24 @@ class Auth {
         return@withContext UserInfo(username, avatarUrl, ipk, sks)
     }
 
-    private suspend fun processLogin(sessionManager: SessionManager, credentials: Credentials): Pair<UserInfo?, String?> {
+    private suspend fun processLogin(sessionManager: SessionManager, credentials: Credentials): LoginResult {
         val response = loginPortal(credentials)
         val sessionCookie = response.cookie("portal_session")
-        val (isLoggedIn, errorMessage) = checkLogin(response)
-        if (isLoggedIn && sessionCookie != null) {
+        val loginResult = checkLogin(response)
+        if (loginResult.userInfo != null && sessionCookie != null) {
             val userInfo = getUserInfo(sessionCookie)
             sessionManager.saveSession(Session(sessionCookie, userInfo))
-            return Pair(userInfo, null)
+            return LoginResult(userInfo, null)
         }
-        return if (!isLoggedIn) Pair(null, errorMessage) else Pair(null, null)
+        return loginResult
     }
 
-    suspend fun login(sessionManager: SessionManager, credentials: Credentials): Pair<UserInfo?, String?> {
-        val (userInfo, errorMessage) = processLogin(sessionManager, credentials)
-        println("Error message: $errorMessage")
-        if (userInfo != null) {
+    suspend fun login(sessionManager: SessionManager, credentials: Credentials): LoginResult {
+        val loginResult = processLogin(sessionManager, credentials)
+        if (loginResult.userInfo != null) {
             sessionManager.saveCredentials(credentials)
         }
-        println("Login result: $userInfo, $errorMessage")
-        return Pair(userInfo, errorMessage)
+        return loginResult
     }
 
 }
