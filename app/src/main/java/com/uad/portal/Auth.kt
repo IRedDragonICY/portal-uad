@@ -30,7 +30,7 @@ class Auth {
         val loginForm = doc.select("div.form-login")
         if (loginForm.isNotEmpty()) {
             val errorElement = doc.select("div.form-group.has-error div.help-block")
-            val errorMessage = if (errorElement.isNotEmpty()) errorElement.text() else "Unknown error"
+            val errorMessage = errorElement.first()?.text() ?: "Unknown error"
             return@withContext Pair(false, errorMessage)
         }
         return@withContext Pair(true, "")
@@ -68,24 +68,17 @@ class Auth {
             sessionManager.saveSession(Session(sessionCookie, userInfo))
             return Pair(userInfo, null)
         }
-        return Pair(null, errorMessage)
-    }
-
-
-    suspend fun autoLogin(sessionManager: SessionManager): UserInfo? {
-        val credentials = sessionManager.loadCredentials()
-        if (credentials != null) {
-            val (userInfo, _) = processLogin(sessionManager, credentials)
-            return userInfo
-        }
-        return null
+        return if (!isLoggedIn) Pair(null, errorMessage) else Pair(null, null)
     }
 
     suspend fun login(sessionManager: SessionManager, credentials: Credentials): Pair<UserInfo?, String?> {
         val (userInfo, errorMessage) = processLogin(sessionManager, credentials)
+        println("Error message: $errorMessage")
         if (userInfo != null) {
             sessionManager.saveCredentials(credentials)
         }
+        println("Login result: $userInfo, $errorMessage")
         return Pair(userInfo, errorMessage)
     }
+
 }

@@ -46,16 +46,6 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun loadCredentials(): Credentials? {
-        val credentialsJson = sharedPref.getString("credentials", null)
-        return if (credentialsJson != null) {
-            val type = object : TypeToken<Credentials>() {}.type
-            gson.fromJson(credentialsJson, type)
-        } else {
-            null
-        }
-    }
-
     fun clearSession() {
         sharedPref.edit {
             remove("session")

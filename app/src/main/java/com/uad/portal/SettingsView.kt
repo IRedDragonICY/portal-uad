@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsView(mainViewModel: MainViewModel) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-        Button(onClick = { mainViewModel.onBackFromSettings() }) {
-            Text("Kembali")
+        Button(onClick = mainViewModel::navigateHome) {
+            Text("Back")
         }
     }
 }

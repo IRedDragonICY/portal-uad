@@ -26,58 +26,58 @@ data class Attendance(
 fun AttendanceView(mainViewModel: MainViewModel) {
     val coroutineScope = rememberCoroutineScope()
     val attendanceInfo = remember { mutableStateOf(emptyList<Attendance>()) }
-    val sessionCookie = mainViewModel.getSessionCookie()
+    val isAttendanceInfoLoaded = remember { mutableStateOf(false) }
 
-
-    if (sessionCookie != null) {
-        LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
+        if (!isAttendanceInfoLoaded.value) {
             coroutineScope.launch(Dispatchers.IO) {
-                attendanceInfo.value = mainViewModel.getAttendanceInfo(sessionCookie)
+                attendanceInfo.value = mainViewModel.getAttendanceInfo()
+                isAttendanceInfoLoaded.value = true
             }
         }
+    }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-            Button(onClick = mainViewModel::onBackFromAttendance) {
-                Text("Kembali")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            if (attendanceInfo.value.isNotEmpty()) {
-                attendanceInfo.value.forEach { attendance ->
-                    if (attendance.information == "Tidak ada Presensi Kelas Matakuliah saat ini.") {
-                        Text(attendance.information)
-                    } else {
-                        DisplayAttendanceInfo(attendance)
-                        if (attendance.attendanceStatus == "Not Marked") {
-                            Button(onClick = {
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    if (mainViewModel.markAttendance(sessionCookie, attendance.klsdtId, attendance.presklsId)) {
-                                        attendanceInfo.value = mainViewModel.getAttendanceInfo(sessionCookie)
-                                    }
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
+        Button(onClick = { mainViewModel.goBack() }) {
+            Text("Back")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        if (attendanceInfo.value.isNotEmpty()) {
+            attendanceInfo.value.forEach { attendance ->
+                if (attendance.information == "Tidak ada Presensi Kelas Matakuliah saat ini.") {
+                    Text(attendance.information)
+                } else {
+                    DisplayAttendanceInfo(attendance)
+                    if (attendance.attendanceStatus == "Not Marked") {
+                        Button(onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (mainViewModel.markAttendance(attendance.klsdtId, attendance.presklsId)) {
+                                    attendanceInfo.value = mainViewModel.getAttendanceInfo()
                                 }
-                            }) {
-                                Text("Mark Attendance")
                             }
+                        }) {
+                            Text("Mark Attendance")
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
-    } else {
-        // Tampilkan pesan bahwa sessionCookie adalah null atau minta pengguna untuk masuk
     }
 }
 
-
-
 @Composable
 private fun DisplayAttendanceInfo(attendance: Attendance) {
-    Text("Matakuliah / Kelas: ${attendance.courseClass}")
-    Text("Semester: ${attendance.semester}")
-    Text("Pertemuan ke-: ${attendance.meetingNumber}")
-    Text("Tgl. Pertemuan: ${attendance.meetingDate}")
-    Text("Materi: ${attendance.material}")
-    Text("Mulai Presensi: ${attendance.attendanceStart}")
-    Text("Presensi: ${attendance.attendanceStatus}")
-    Text("Informasi: ${attendance.information}")
+    if (attendance.information == "Tidak ada Presensi Kelas Matakuliah saat ini.") {
+        Text("Informasi: ${attendance.information}")
+    } else {
+        Text("Matakuliah / Kelas: ${attendance.courseClass}")
+        Text("Semester: ${attendance.semester}")
+        Text("Pertemuan ke-: ${attendance.meetingNumber}")
+        Text("Tgl. Pertemuan: ${attendance.meetingDate}")
+        Text("Materi: ${attendance.material}")
+        Text("Mulai Presensi: ${attendance.attendanceStart}")
+        Text("Presensi: ${attendance.attendanceStatus}")
+        Text("Informasi: ${attendance.information}")
+    }
 }

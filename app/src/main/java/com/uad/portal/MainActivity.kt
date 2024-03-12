@@ -15,19 +15,17 @@ import androidx.lifecycle.ViewModelProvider
 import com.uad.portal.ui.theme.PortalUADTheme
 
 class MainActivity : ComponentActivity() {
-    private lateinit var mainViewModel: MainViewModel
+    private val mainViewModel by lazy { ViewModelProvider(this)[MainViewModel::class.java] }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mainViewModel = ViewModelProvider(this).get(MainViewModel::class.java)
         mainViewModel.initSessionManager(this)
         setContent {
             PortalUADTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                )
-                {
+                ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         AppContent(mainViewModel)
                     }
@@ -38,14 +36,11 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun AppContent(mainViewModel: MainViewModel) {
-        if (mainViewModel.isAttendanceScreen.value) {
-            AttendanceView(mainViewModel)
-        } else if (mainViewModel.isSettingsScreen.value) {
-            SettingsView(mainViewModel)
-        } else if (mainViewModel.isLoggedInState.value) {
-            HomeView(mainViewModel)
-        } else {
-            LoginView(mainViewModel)
+        when {
+            mainViewModel.isAttendanceScreen.value -> AttendanceView(mainViewModel)
+            mainViewModel.isSettingsScreen.value -> SettingsView(mainViewModel)
+            mainViewModel.isLoggedInState.value -> HomeView(mainViewModel)
+            else -> LoginView(mainViewModel)
         }
     }
 }
