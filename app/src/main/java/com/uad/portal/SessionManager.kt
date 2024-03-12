@@ -39,13 +39,6 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun saveUserInfo(userInfo: UserInfo) {
-        val userInfoJson = gson.toJson(userInfo)
-        sharedPref.edit {
-            putString("userInfo", userInfoJson)
-        }
-    }
-
     fun saveCredentials(credentials: Credentials) {
         val credentialsJson = gson.toJson(credentials)
         sharedPref.edit {
