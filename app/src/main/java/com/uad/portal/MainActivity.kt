@@ -19,7 +19,6 @@ import com.uad.portal.ui.theme.PortalUADTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-
 class MainActivity : ComponentActivity() {
     private lateinit var sessionManager: SessionManager
     private lateinit var auth: Auth
@@ -33,7 +32,8 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                ) {
+                )
+                {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         AppContent()
                     }
@@ -44,6 +44,7 @@ class MainActivity : ComponentActivity() {
             auth.autoLogin(sessionManager)
         }
     }
+
 
     @Composable
     private fun AppContent() {
@@ -57,9 +58,10 @@ class MainActivity : ComponentActivity() {
             AttendanceView(
                 onBack = { isAttendanceScreen.value = false },
                 getAttendanceInfo = { sessionCookie: String -> getAttendanceInfo(sessionCookie) },
+                markAttendance = { sessionCookie, klsdtId, presklsId -> markAttendance(sessionCookie, klsdtId, presklsId) },
                 sessionManager = sessionManager
             )
-        }else if (isSettingsScreen.value) {
+        } else if (isSettingsScreen.value) {
             SettingsView(onBack = { isSettingsScreen.value = false })
         } else if (isLoggedInState.value) {
             HomeView(
@@ -73,7 +75,6 @@ class MainActivity : ComponentActivity() {
             LoginView(userInfoState, isLoggedInState, coroutineScope, auth, sessionManager)
         }
     }
-
     @Composable
     private fun HomeView(
         userInfoState: MutableState<UserInfo?>,
@@ -83,7 +84,9 @@ class MainActivity : ComponentActivity() {
         onSettingsClick: () -> Unit
 
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp)) {
             Text("You are logged in as ${userInfoState.value?.username ?: "Unknown"}")
             Text("Your IPK is ${userInfoState.value?.ipk ?: "Unknown"}")
             Text("Your total SKS is ${userInfoState.value?.sks ?: "Unknown"}")
