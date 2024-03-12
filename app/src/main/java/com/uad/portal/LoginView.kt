@@ -35,16 +35,28 @@ fun LoginView(
     sessionManager: SessionManager
 ) {
 
-    val credentialsState = remember { mutableStateOf(Credentials("", "")) }
-    val passwordVisibilityState = remember { mutableStateOf(false) }
-    val loginErrorMessageState = remember { mutableStateOf("") }
+    val (credentials, setCredentials) = remember { mutableStateOf(Credentials("", "")) }
+    val (passwordVisibility, setPasswordVisibility) = remember { mutableStateOf(false) }
+    val (loginErrorMessage, setLoginErrorMessage) = remember { mutableStateOf("") }
 
     val passwordFocusRequester = remember { FocusRequester() }
 
+    val attemptLogin = {
+        coroutineScope.launch {
+            val (userInfo, errorMessage) = auth.login(sessionManager, credentials)
+            if (userInfo != null) {
+                isLoggedInState.value = true
+                userInfoState.value = userInfo
+            } else {
+                setLoginErrorMessage(errorMessage ?: "Failed to login")
+            }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
         OutlinedTextField(
-            value = credentialsState.value.username,
-            onValueChange = { credentialsState.value = credentialsState.value.copy(username = it) },
+            value = credentials.username,
+            onValueChange = { setCredentials(credentials.copy(username = it)) },
             label = { Text("Username") },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
@@ -62,27 +74,17 @@ fun LoginView(
         )
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
-            value = credentialsState.value.password,
-            onValueChange = { credentialsState.value = credentialsState.value.copy(password = it) },
+            value = credentials.password,
+            onValueChange = { setCredentials(credentials.copy(password = it)) },
             label = { Text("Password") },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = {
-                coroutineScope.launch {
-                    val (userInfo, _) = auth.login(sessionManager, credentialsState.value)
-                    if (userInfo != null) {
-                        isLoggedInState.value = true
-                        userInfoState.value = userInfo
-                    } else {
-                        loginErrorMessageState.value = "Failed to login"
-                    }
-                }
-            }),
-            visualTransformation = if (passwordVisibilityState.value) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardActions = KeyboardActions(onDone = { attemptLogin() }),
+            visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { passwordVisibilityState.value = !passwordVisibilityState.value }) {
+                IconButton(onClick = { setPasswordVisibility(!passwordVisibility) }) {
                     Icon(
-                        imageVector = if (passwordVisibilityState.value) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = if (passwordVisibilityState.value) "Hide password" else "Show password"
+                        imageVector = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                        contentDescription = if (passwordVisibility) "Hide password" else "Show password"
                     )
                 }
             },
@@ -94,23 +96,9 @@ fun LoginView(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    val (userInfo, errorMessage) = auth.login(sessionManager, credentialsState.value)
-                    if (userInfo != null) {
-                        isLoggedInState.value = true
-                        userInfoState.value = userInfo
-                    } else {
-                        loginErrorMessageState.value = errorMessage ?: "Failed to login"
-                    }
-                }
-            }
-        ) {
-            Text("Login")
-        }
-        if (loginErrorMessageState.value.isNotEmpty()) {
-            Text(loginErrorMessageState.value, color = MaterialTheme.colorScheme.error)
+        Button(onClick = { attemptLogin() }) { Text("Login") }
+        if (loginErrorMessage.isNotEmpty()) {
+            Text(loginErrorMessage, color = MaterialTheme.colorScheme.error)
         }
     }
 }
