@@ -1,6 +1,8 @@
 package com.uad.portal
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -13,12 +15,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -33,60 +38,96 @@ fun LoginView(mainViewModel: MainViewModel) {
 
     val passwordFocusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
+
     val attemptLogin = {
         scope.launch {
             val (userInfo, errorMessage) = mainViewModel.login(credentials)
             setLoginErrorMessage(errorMessage ?: "")
         }
     }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-        OutlinedTextField(
-            value = credentials.username,
-            onValueChange = { setCredentials(credentials.copy(username = it)) },
-            label = { Text("Username") },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
-            modifier = Modifier.onPreviewKeyEvent { keyEvent ->
-                if (keyEvent.key == Key.Enter) {
-                    passwordFocusRequester.requestFocus()
-                    true
-                } else {
-                    false
+            Image(
+                painter = painterResource(id = R.drawable.logo_uad),
+                contentDescription = "Universitas Ahmad Dahlan",
+                modifier = Modifier
+                    .size(192.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            OutlinedTextField(
+                value = credentials.username,
+                onValueChange = { setCredentials(credentials.copy(username = it)) },
+                label = { Text("Username") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
+                modifier = Modifier.onPreviewKeyEvent { keyEvent ->
+                    if (keyEvent.key == Key.Enter) {
+                        passwordFocusRequester.requestFocus()
+                        true
+                    } else {
+                        false
+                    }
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.AccountCircle, contentDescription = "Username")
                 }
-            },
-            leadingIcon = {
-                Icon(Icons.Filled.AccountCircle, contentDescription = "Username")
-            }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = credentials.password,
-            onValueChange = { setCredentials(credentials.copy(password = it)) },
-            label = { Text("Password") },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { attemptLogin() }),
-            visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                IconButton(onClick = { setPasswordVisibility(!passwordVisibility) }) {
-                    Icon(
-                        imageVector = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = if (passwordVisibility) "Hide password" else "Show password"
-                    )
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = credentials.password,
+                onValueChange = { setCredentials(credentials.copy(password = it)) },
+                label = { Text("Password") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { attemptLogin() }),
+                visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { setPasswordVisibility(!passwordVisibility) }) {
+                        Icon(
+                            imageVector = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (passwordVisibility) "Hide password" else "Show password"
+                        )
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.focusRequester(passwordFocusRequester),
+                leadingIcon = {
+                    Icon(Icons.Filled.Lock, contentDescription = "Password")
                 }
-            },
-            singleLine = true,
-            modifier = Modifier.focusRequester(passwordFocusRequester),
-            leadingIcon = {
-                Icon(Icons.Filled.Lock, contentDescription = "Password")
-            }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { attemptLogin() }) { Text("Login") }
-        Spacer(modifier = Modifier.height(16.dp))
-        if (loginErrorMessage.isNotEmpty()) {
-            Text(text = loginErrorMessage, color = MaterialTheme.colorScheme.error)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            ClickableText(
+                text = AnnotatedString("Lupa password?"),
+                onClick = {
+                    // TODO
+                },
+                modifier = Modifier.align(Alignment.End)
+            )
             Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { attemptLogin() },
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text("Login")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            if (loginErrorMessage.isNotEmpty()) {
+                Text(text = loginErrorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.CenterHorizontally)) // Removed padding here
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            Spacer(modifier = Modifier.height(64.dp))
+            Text(
+                text = "© 2024 Universitas Ahmad Dahlan",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
     }
 }
