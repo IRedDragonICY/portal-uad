@@ -31,16 +31,6 @@ import com.uad.portal.ui.theme.PortalUADTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-data class Attendance(
-    val courseClass: String,
-    val semester: String,
-    val meetingNumber: Int,
-    val meetingDate: String,
-    val material: String,
-    val attendanceStart: String,
-    val attendanceStatus: String,
-    val information: String
-)
 
 class MainActivity : ComponentActivity() {
     private lateinit var sessionManager: SessionManager
