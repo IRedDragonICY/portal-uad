@@ -66,13 +66,15 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun login(credentials: Credentials) = viewModelScope.launch {
-        val (userInfo, _) = auth.login(sessionManager, credentials)
+    suspend fun login(credentials: Credentials): Pair<UserInfo?, String?> {
+        val (userInfo, errorMessage) = auth.login(sessionManager, credentials)
         userInfo?.let {
             isLoggedInState.value = true
             userInfoState.value = it
         }
+        return Pair(userInfo, errorMessage)
     }
+
 
     fun getAttendanceInfo(): List<Attendance> {
         val sessionCookie = sessionManager.loadSession()?.session ?: return emptyList()

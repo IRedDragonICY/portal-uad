@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginView(mainViewModel: MainViewModel) {
@@ -30,9 +32,12 @@ fun LoginView(mainViewModel: MainViewModel) {
     val (loginErrorMessage, setLoginErrorMessage) = remember { mutableStateOf("") }
 
     val passwordFocusRequester = remember { FocusRequester() }
-
+    val scope = rememberCoroutineScope()
     val attemptLogin = {
-        mainViewModel.login(credentials)
+        scope.launch {
+            val (userInfo, errorMessage) = mainViewModel.login(credentials)
+            setLoginErrorMessage(errorMessage ?: "")
+        }
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
@@ -76,11 +81,12 @@ fun LoginView(mainViewModel: MainViewModel) {
                 Icon(Icons.Filled.Lock, contentDescription = "Password")
             }
         )
-
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { attemptLogin() }) { Text("Login") }
+        Spacer(modifier = Modifier.height(16.dp))
         if (loginErrorMessage.isNotEmpty()) {
-            Text(loginErrorMessage, color = MaterialTheme.colorScheme.error)
+            Text(text = loginErrorMessage, color = MaterialTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
