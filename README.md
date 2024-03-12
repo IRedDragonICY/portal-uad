@@ -9,6 +9,16 @@
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-0095D5?&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Coroutines](https://img.shields.io/badge/Coroutines-76B900?&logo=kotlin&logoColor=white)](https://kotlinlang.org/docs/coroutines-overview.html)
 [![Jsoup](https://img.shields.io/badge/Jsoup-F4882A?&logo=java&logoColor=white)](https://jsoup.org/)
+[![HitCount](http://hits.dwyl.com/IRedDragonICY/portal-uad.svg)](http://hits.dwyl.com/IRedDragonICY/portal-uad)
+[![Github All Releases](https://img.shields.io/github/downloads/IRedDragonICY/portal-uad/total.svg)]()
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/IRedDragonICY/portal-uad.svg)]()
+[![GitHub contributors](https://img.shields.io/github/contributors/IRedDragonICY/portal-uad.svg)]()
+[![GitHub issues](https://img.shields.io/github/issues/IRedDragonICY/portal-uad.svg)]()
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/IRedDragonICY/portal-uad.svg)]()
+[![GitHub last commit](https://img.shields.io/github/last-commit/IRedDragonICY/portal-uad.svg)]()
+[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/IRedDragonICY/portal-uad?include_prereleases)]()
+
+
 
 > **Portal UAD** is a state-of-the-art Android mobile application built with Jetpack Compose. This application aims to simplify the academic life of students at Universitas Ahmad Dahlan by providing easy access to academic services such as viewing academic information, attendance, and more.
 
