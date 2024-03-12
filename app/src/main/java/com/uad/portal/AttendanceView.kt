@@ -113,8 +113,11 @@ fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
             val klsdtId = table.select("input[name=klsdt_id]").`val`()
             val presklsId = table.select("input[name=preskls_id]").`val`()
 
-            // Defaulting attendanceStatus to "Not Marked"
-            val attendanceStatus = if (rows.size > 6) rows[6].select("td")[2].text() else "Not Marked"
+            // Check if the "Presensi" button exists in the HTML
+            val presensiButtonExists = table.select("button[name=action][value=btnpresensi]").isNotEmpty()
+
+            // If the button exists, set attendanceStatus to "Not Marked". Otherwise, set it to "Marked".
+            val attendanceStatus = if (presensiButtonExists) "Not Marked" else "Marked"
 
             createAttendance(courseClass, semester, meetingNumber, meetingDate, material, attendanceStart, attendanceStatus, information, klsdtId, presklsId)
         }
@@ -123,6 +126,7 @@ fun getAttendanceInfo(sessionCookie: String): List<Attendance> {
         listOf(createAttendance("Error: ${e.message}", "", 0, "", "", "", "", "", "", ""))
     }
 }
+
 
 fun markAttendance(sessionCookie: String, klsdtId: String, presklsId: String): Boolean {
     fun connectJsoup(url: String, cookie: String, data: Map<String, String>, method: Connection.Method): Connection.Response =
