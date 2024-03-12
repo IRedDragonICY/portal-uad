@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -23,18 +22,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 @Composable
-fun LoginView(
-    userInfoState: MutableState<UserInfo?>,
-    isLoggedInState: MutableState<Boolean>,
-    coroutineScope: CoroutineScope,
-    auth: Auth,
-    sessionManager: SessionManager
-) {
-
+fun LoginView(mainViewModel: MainViewModel) {
     val (credentials, setCredentials) = remember { mutableStateOf(Credentials("", "")) }
     val (passwordVisibility, setPasswordVisibility) = remember { mutableStateOf(false) }
     val (loginErrorMessage, setLoginErrorMessage) = remember { mutableStateOf("") }
@@ -42,15 +32,7 @@ fun LoginView(
     val passwordFocusRequester = remember { FocusRequester() }
 
     val attemptLogin = {
-        coroutineScope.launch {
-            val (userInfo, errorMessage) = auth.login(sessionManager, credentials)
-            if (userInfo != null) {
-                isLoggedInState.value = true
-                userInfoState.value = userInfo
-            } else {
-                setLoginErrorMessage(errorMessage ?: "Failed to login")
-            }
-        }
+        mainViewModel.login(credentials)
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {

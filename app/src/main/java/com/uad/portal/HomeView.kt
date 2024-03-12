@@ -1,34 +1,22 @@
-package com.uad.portal
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import com.uad.portal.MainViewModel
 
 @Composable
-fun HomeView(
-    userInfoState: MutableState<UserInfo?>,
-    isLoggedInState: MutableState<Boolean>,
-    coroutineScope: CoroutineScope,
-    onAttendanceClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    auth: Auth,
-    sessionManager: SessionManager
-) {
+fun HomeView(mainViewModel: MainViewModel) {
     Column(modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 32.dp)) {
-        Text("You are logged in as ${userInfoState.value?.username ?: "Unknown"}")
-        Text("Your IPK is ${userInfoState.value?.ipk ?: "Unknown"}")
-        Text("Your total SKS is ${userInfoState.value?.sks ?: "Unknown"}")
-        userInfoState.value?.avatarUrl?.let {
+        Text("You are logged in as ${mainViewModel.userInfoState.value?.username ?: "Unknown"}")
+        Text("Your IPK is ${mainViewModel.userInfoState.value?.ipk ?: "Unknown"}")
+        Text("Your total SKS is ${mainViewModel.userInfoState.value?.sks ?: "Unknown"}")
+        mainViewModel.userInfoState.value?.avatarUrl?.let {
             if (it.isNotEmpty()) {
                 Image(
                     painter = rememberImagePainter(it),
@@ -39,25 +27,16 @@ fun HomeView(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onAttendanceClick) {
+        Button(onClick = mainViewModel::onAttendanceClick) {
             Text("Absensi")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onSettingsClick) {
+        Button(onClick = mainViewModel::onSettingsClick) {
             Text("Settings")
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            coroutineScope.launch {
-                val isLoggedOut = auth.logoutPortal()
-                if (isLoggedOut) {
-                    sessionManager.clearSession()
-                    isLoggedInState.value = false
-                    userInfoState.value = UserInfo()
-                }
-            }
-        }) {
+        Button(onClick = mainViewModel::logout) {
             Text("Logout")
         }
     }

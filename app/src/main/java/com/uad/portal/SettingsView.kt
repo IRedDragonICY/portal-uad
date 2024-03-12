@@ -10,11 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsView(
-    onBack: () -> Unit
-) {
+fun SettingsView(mainViewModel: MainViewModel) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-        Button(onClick = onBack) {
+        Button(onClick = { mainViewModel.onBackFromSettings() }) {
             Text("Kembali")
         }
     }
