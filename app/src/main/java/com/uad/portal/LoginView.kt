@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,12 +37,11 @@ fun LoginView(mainViewModel: MainViewModel) {
     val (loginErrorMessage, setLoginErrorMessage) = remember { mutableStateOf("") }
 
     val passwordFocusRequester = remember { FocusRequester() }
-    val scope = rememberCoroutineScope()
 
     val attemptLogin = {
-        scope.launch {
-            val (userInfo, errorMessage) = mainViewModel.login(credentials)
-            setLoginErrorMessage(errorMessage ?: "")
+        mainViewModel.viewModelScope.launch {
+            val loginResult = mainViewModel.login(credentials)
+            setLoginErrorMessage(loginResult.errorMessage ?: "")
         }
     }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

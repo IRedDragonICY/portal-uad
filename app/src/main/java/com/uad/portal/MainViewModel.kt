@@ -22,6 +22,13 @@ class MainViewModel : ViewModel() {
 
     private val navigationStack = Stack<String>()
 
+    fun autoLogin() = viewModelScope.launch {
+        val credentials = sessionManager.loadCredentials()
+        credentials?.let {
+            login(it)
+        }
+    }
+
     fun initSessionManager(context: Context) {
         sessionManager = SessionManager(context)
         val session = sessionManager.loadSession()
@@ -29,7 +36,9 @@ class MainViewModel : ViewModel() {
             isLoggedInState.value = true
             userInfoState.value = it.userInfo
         }
+        autoLogin()
     }
+
 
     fun navigateHome() {
         navigationStack.clear()
