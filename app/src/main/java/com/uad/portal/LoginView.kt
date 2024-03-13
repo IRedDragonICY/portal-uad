@@ -24,6 +24,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -82,7 +83,11 @@ fun LoginView(mainViewModel: MainViewModel) {
                 value = credentials.password,
                 onValueChange = { setCredentials(credentials.copy(password = it)) },
                 label = { Text("Password") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done,
+                    keyboardType = KeyboardType.Password,
+                    autoCorrect = false
+                ),
                 keyboardActions = KeyboardActions(onDone = { attemptLogin() }),
                 visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
@@ -99,6 +104,7 @@ fun LoginView(mainViewModel: MainViewModel) {
                     Icon(Icons.Filled.Lock, contentDescription = "Password")
                 }
             )
+
             Spacer(modifier = Modifier.height(16.dp))
             ClickableText(
                 text = AnnotatedString("Lupa password?"),
