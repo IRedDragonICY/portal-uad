@@ -1,5 +1,6 @@
 package com.uad.portal
 
+import AttendanceReceiver
 import android.Manifest
 import android.app.Notification
 import android.app.PendingIntent
@@ -19,7 +20,10 @@ import kotlinx.coroutines.withContext
 class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
 
+    private lateinit var sessionManager: SessionManager
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        sessionManager = SessionManager(applicationContext)
         val mainViewModel = MainViewModel()
         mainViewModel.initSessionManager(applicationContext)
 
@@ -32,39 +36,44 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
         Result.success()
     }
 
-
     private fun sendNotification(attendanceInfo: List<Attendance>) {
         val notificationManager = NotificationManagerCompat.from(applicationContext)
         val channelId = "attendance_notifications"
 
         for ((index, attendance) in attendanceInfo.withIndex()) {
-            val notification = NotificationCompat.Builder(applicationContext, channelId)
-                .setSmallIcon(R.drawable.logo_uad)
-                .setContentTitle(attendance.courseClass)
-                .setContentText(attendance.meetingDate)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .build()
-
-            if (ActivityCompat.checkSelfPermission(
-                    applicationContext,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                val intent = Intent(applicationContext, PermissionRequestReceiver::class.java).apply {
-                    action = ACTION_REQUEST_PERMISSION
-                    putExtra(EXTRA_PERMISSION, Manifest.permission.POST_NOTIFICATIONS)
-                    putExtra(EXTRA_NOTIFICATION, notification)
-                    putExtra(EXTRA_NOTIFICATION_ID, index)
+            // Only send notification if attendance status is "Not Marked"
+            if (attendance.attendanceStatus == "Not Marked") {
+                // Create an explicit intent for a BroadcastReceiver in your app
+                val attendanceIntent = Intent(applicationContext, AttendanceReceiver::class.java).apply {
+                    putExtra("klsdtId", attendance.klsdtId)
+                    putExtra("presklsId", attendance.presklsId)
                 }
 
-                val pendingIntent = PendingIntent.getBroadcast(applicationContext, REQUEST_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                pendingIntent.send()
-                continue
-            }
+                val attendancePendingIntent: PendingIntent = PendingIntent.getBroadcast(applicationContext, index, attendanceIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-            notificationManager.notify(index, notification)
+                val notification = NotificationCompat.Builder(applicationContext, channelId)
+                    .setSmallIcon(R.drawable.logo_uad)
+                    .setContentTitle(attendance.courseClass)
+                    .setContentText(attendance.meetingDate)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .addAction(R.drawable.logo_uad, "Absen", attendancePendingIntent)
+                    .build()
+
+                if (ActivityCompat.checkSelfPermission(
+                        applicationContext,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    return
+                }
+                notificationManager.notify(index, notification)
+            }
         }
     }
+
+
+
+
 
     companion object {
         const val ACTION_REQUEST_PERMISSION = "com.uad.portal.ACTION_REQUEST_PERMISSION"
@@ -74,6 +83,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
         const val REQUEST_CODE = 0
     }
 }
+
 
 class PermissionRequestReceiver : BroadcastReceiver() {
 
