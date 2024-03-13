@@ -21,6 +21,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val mainViewModel = MainViewModel()
+        mainViewModel.initSessionManager(applicationContext)
 
         val attendanceInfo = mainViewModel.getAttendanceInfo()
 
@@ -30,6 +31,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
 
         Result.success()
     }
+
 
     private fun sendNotification(attendanceInfo: List<Attendance>) {
         val notificationManager = NotificationManagerCompat.from(applicationContext)
@@ -55,7 +57,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
                     putExtra(EXTRA_NOTIFICATION_ID, index)
                 }
 
-                val pendingIntent = PendingIntent.getBroadcast(applicationContext, REQUEST_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+                val pendingIntent = PendingIntent.getBroadcast(applicationContext, REQUEST_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                 pendingIntent.send()
                 continue
             }

@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(2, TimeUnit.MINUTES).build()
+        val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(1, TimeUnit.MINUTES).build()
         WorkManager.getInstance(this).enqueue(attendanceWorkRequest)
 
         createNotificationChannel()

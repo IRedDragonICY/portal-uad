@@ -73,9 +73,8 @@ class SessionManager(context: Context) {
 
     fun clearSession() {
         sharedPref.edit {
-            remove("session")
-            remove("userInfo")
-            remove("credentials")
+            clear()
+            apply()
         }
     }
 }
