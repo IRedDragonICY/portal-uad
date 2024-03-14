@@ -150,10 +150,9 @@ class MainViewModel : ViewModel() {
             userInfoState.value = it
 
             val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
-            val reglabLoginResult = reglabAuth.login(reglabCredentials)
-
-            if (!reglabLoginResult.success) {
-                println("Reglab login failed: ${reglabLoginResult.errorMessage}")
+            val reglabLoginResult = reglabAuth.login(reglabCredentials, sessionManager)
+            if (reglabLoginResult.success) {
+                // Do something
             }
         }
         return loginResult

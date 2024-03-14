@@ -58,6 +58,22 @@ class SessionManager(context: Context) {
             null
         }
     }
+    fun saveReglabSession(session: ReglabSession) {
+        val sessionJson = gson.toJson(session)
+        sharedPref.edit {
+            putString("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", sessionJson)
+        }
+    }
+
+    fun loadReglabSession(): ReglabSession? {
+        val sessionJson = sharedPref.getString("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", null)
+        return if (sessionJson != null) {
+            val type = object : TypeToken<ReglabSession>() {}.type
+            gson.fromJson(sessionJson, type)
+        } else {
+            null
+        }
+    }
 
     fun clearSession() {
         sharedPref.edit {

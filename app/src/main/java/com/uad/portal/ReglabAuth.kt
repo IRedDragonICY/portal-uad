@@ -52,17 +52,35 @@ class ReglabAuth {
         return@withContext ReglabLoginResult(true, null)
     }
 
-    suspend fun login(credentials: ReglabCredentials): ReglabLoginResult {
+    suspend fun login(credentials: ReglabCredentials, sessionManager: SessionManager): ReglabLoginResult {
+
+        val session = sessionManager.loadReglabSession()
+        if (session != null) {
+            val response = getLoginPage()
+            val cookieValue = response.cookie(COOKIE_NAME)
+            if (cookieValue != null) {
+                val loginResult = checkLogin(response)
+                if (loginResult.success) {
+                    return loginResult
+                }
+            }
+        }
         val loginPageResponse = getLoginPage()
         val token = getToken(loginPageResponse)
         val cookies = loginPageResponse.cookies()
         val response = loginReglab(credentials, token, cookies)
-        println(response.cookies())
         val cookieValue = response.cookie(COOKIE_NAME)
+
         if (cookieValue != null) {
-            return checkLogin(response)
+            val loginResult = checkLogin(response)
+            if (loginResult.success) {
+                val session = ReglabSession(remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d = cookieValue, credentials = credentials)
+                sessionManager.saveReglabSession(session)
+            }
+            return loginResult
         }
         return ReglabLoginResult(false, "Failed to get cookie")
     }
+
 }
 
