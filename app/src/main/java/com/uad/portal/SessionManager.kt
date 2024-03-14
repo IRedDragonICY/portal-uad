@@ -9,18 +9,6 @@ import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-data class UserInfo(
-    var username: String? = null,
-    var avatarUrl: String? = null,
-    var ipk: String? = null,
-    var sks: String? = null
-)
-
-data class Session(
-    var session: String? = null,
-    var userInfo: UserInfo? = null,
-    var credentials: Credentials? = null
-)
 
 class SessionManager(context: Context) {
     private val masterKey = MasterKey.Builder(context)

@@ -6,8 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.uad.reglab.ReglabAuth
-import com.uad.reglab.ReglabCredentials
 import kotlinx.coroutines.launch
 import org.jsoup.Connection
 import org.jsoup.Jsoup
@@ -15,11 +13,7 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.util.concurrent.TimeUnit
 
-enum class Screen {
-    Home,
-    Attendance,
-    Settings
-}
+
 
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager

@@ -1,4 +1,4 @@
-package com.uad.reglab
+package com.uad.portal
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,7 +40,8 @@ class ReglabAuth {
             .execute()
     }
 
-    private suspend fun loginReglab(credentials: ReglabCredentials, token: String, cookies: Map<String, String>): Connection.Response = executeConnection(LOGIN_URL, Connection.Method.POST, credentials, token, cookies)
+    private suspend fun loginReglab(credentials: ReglabCredentials, token: String, cookies: Map<String, String>): Connection.Response = executeConnection(
+        LOGIN_URL, Connection.Method.POST, credentials, token, cookies)
 
     private suspend fun checkLogin(response: Connection.Response): ReglabLoginResult = withContext(Dispatchers.IO) {
         val doc = response.parse()
