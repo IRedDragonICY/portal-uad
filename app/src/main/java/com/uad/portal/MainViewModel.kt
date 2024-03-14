@@ -40,7 +40,7 @@ class MainViewModel : ViewModel() {
         }
     }
     fun initAttendanceWorker(context: Context) {
-        val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(1, TimeUnit.MINUTES).build()
+        val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(3, TimeUnit.MINUTES).build()
         WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
     }
 

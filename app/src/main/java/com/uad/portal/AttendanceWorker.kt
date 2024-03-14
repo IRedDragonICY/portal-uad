@@ -1,6 +1,6 @@
 package com.uad.portal
 
-import AttendanceReceiver
+import AttendanceService
 import android.Manifest
 import android.app.Notification
 import android.app.PendingIntent
@@ -41,15 +41,13 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
         val channelId = "attendance_notifications"
 
         for ((index, attendance) in attendanceInfo.withIndex()) {
-            // Only send notification if attendance status is "Not Marked"
             if (attendance.attendanceStatus == "Not Marked") {
-                // Create an explicit intent for a BroadcastReceiver in your app
-                val attendanceIntent = Intent(applicationContext, AttendanceReceiver::class.java).apply {
+                val attendanceIntent = Intent(applicationContext, AttendanceService::class.java).apply {
                     putExtra("klsdtId", attendance.klsdtId)
                     putExtra("presklsId", attendance.presklsId)
                 }
 
-                val attendancePendingIntent: PendingIntent = PendingIntent.getBroadcast(applicationContext, index, attendanceIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                val attendancePendingIntent: PendingIntent = PendingIntent.getService(applicationContext, index, attendanceIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
                 val notification = NotificationCompat.Builder(applicationContext, channelId)
                     .setSmallIcon(R.drawable.logo_uad)
@@ -70,6 +68,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
             }
         }
     }
+
 
 
 
