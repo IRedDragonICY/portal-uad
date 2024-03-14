@@ -33,6 +33,11 @@ fun HomeView(mainViewModel: MainViewModel) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { mainViewModel.navigate(Screen.Reglab) }) {
+            Text("Reglab")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { mainViewModel.navigate(Screen.Settings) }) {
             Text("Settings")
         }

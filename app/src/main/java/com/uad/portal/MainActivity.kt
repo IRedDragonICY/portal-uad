@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
         when(mainViewModel.currentScreen.value) {
             Screen.Attendance -> AttendanceView(mainViewModel)
             Screen.Settings -> SettingsView(mainViewModel)
+            Screen.Reglab -> ReglabView(mainViewModel)
             Screen.Home -> if (mainViewModel.isLoggedInState.value) HomeView(mainViewModel) else LoginView(mainViewModel)
         }
     }
