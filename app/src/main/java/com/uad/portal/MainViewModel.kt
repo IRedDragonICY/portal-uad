@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.uad.reglab.ReglabAuth
+import com.uad.reglab.ReglabCredentials
 import kotlinx.coroutines.launch
 import org.jsoup.Connection
 import org.jsoup.Jsoup
@@ -22,6 +24,7 @@ enum class Screen {
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager
     private val auth = Auth()
+    private val reglabAuth = ReglabAuth()
 
     val isLoggedInState = mutableStateOf(false)
     val userInfoState = mutableStateOf<UserInfo?>(null)
@@ -67,9 +70,17 @@ class MainViewModel : ViewModel() {
         loginResult.userInfo?.let {
             isLoggedInState.value = true
             userInfoState.value = it
+
+            val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
+            val reglabLoginResult = reglabAuth.login(reglabCredentials)
+
+            if (!reglabLoginResult.success) {
+                println("Reglab login failed: ${reglabLoginResult.errorMessage}")
+            }
         }
         return loginResult
     }
+
 
     fun getAttendanceInfo(): List<Attendance> {
         val sessionCookie = sessionManager.loadSession()?.session ?: return emptyList()
