@@ -10,17 +10,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 data class Attendance(
-    val courseClass: String,
-    val semester: String,
-    val meetingNumber: Int,
-    val meetingDate: String,
-    val material: String,
-    val attendanceStart: String,
-    val attendanceStatus: String,
+    val courseClass: String?,
+    val semester: String?,
+    val meetingNumber: Int?,
+    val meetingDate: String?,
+    val material: String?,
+    val attendanceStart: String?,
+    val attendanceStatus: String?,
     val information: String,
-    val klsdtId: String,
-    val presklsId: String
+    val klsdtId: String?,
+    val presklsId: String?
 )
+
 
 @Composable
 fun AttendanceView(mainViewModel: MainViewModel) {
@@ -38,7 +39,7 @@ fun AttendanceView(mainViewModel: MainViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-        Button(onClick = { mainViewModel.goBack() }) {
+        Button(onClick = { mainViewModel.navigate(Screen.Home) }) {
             Text("Back")
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -51,8 +52,12 @@ fun AttendanceView(mainViewModel: MainViewModel) {
                     if (attendance.attendanceStatus == "Not Marked") {
                         Button(onClick = {
                             coroutineScope.launch(Dispatchers.IO) {
-                                if (mainViewModel.markAttendance(attendance.klsdtId, attendance.presklsId)) {
-                                    attendanceInfo.value = mainViewModel.getAttendanceInfo()
+                                attendance.klsdtId?.let { klsdtId ->
+                                    attendance.presklsId?.let { presklsId ->
+                                        if (mainViewModel.markAttendance(klsdtId, presklsId)) {
+                                            attendanceInfo.value = mainViewModel.getAttendanceInfo()
+                                        }
+                                    }
                                 }
                             }
                         }) {

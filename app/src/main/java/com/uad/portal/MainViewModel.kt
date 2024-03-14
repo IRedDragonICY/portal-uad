@@ -4,12 +4,20 @@ import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.coroutines.launch
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.util.*
+import java.util.concurrent.TimeUnit
+
+enum class Screen {
+    Home,
+    Attendance,
+    Settings
+}
 
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager
@@ -17,10 +25,21 @@ class MainViewModel : ViewModel() {
 
     val isLoggedInState = mutableStateOf(false)
     val userInfoState = mutableStateOf<UserInfo?>(null)
-    val isAttendanceScreen = mutableStateOf(false)
-    val isSettingsScreen = mutableStateOf(false)
+    val currentScreen = mutableStateOf(Screen.Home)
 
-    private val navigationStack = Stack<String>()
+    fun initSessionManager(context: Context) {
+        sessionManager = SessionManager(context)
+        val session = sessionManager.loadSession()
+        session?.let {
+            isLoggedInState.value = true
+            userInfoState.value = it.userInfo
+            autoLogin()
+        }
+    }
+    fun initAttendanceWorker(context: Context) {
+        val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(1, TimeUnit.MINUTES).build()
+        WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
+    }
 
     fun autoLogin() = viewModelScope.launch {
         val credentials = sessionManager.loadCredentials()
@@ -29,40 +48,8 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun initSessionManager(context: Context) {
-        sessionManager = SessionManager(context)
-        val session = sessionManager.loadSession()
-        session?.let {
-            isLoggedInState.value = true
-            userInfoState.value = it.userInfo
-        }
-        autoLogin()
-    }
-
-
-    fun navigateHome() {
-        navigationStack.clear()
-        isAttendanceScreen.value = false
-        isSettingsScreen.value = false
-    }
-
-    fun toggleScreen(isAttendance: Boolean) {
-        if (isAttendanceScreen.value) navigationStack.push("Attendance")
-        if (isSettingsScreen.value) navigationStack.push("Settings")
-
-        isAttendanceScreen.value = isAttendance
-        isSettingsScreen.value = !isAttendance
-    }
-
-    fun goBack() {
-        if (navigationStack.isEmpty()) {
-            navigateHome()
-        } else {
-            when (navigationStack.pop()) {
-                "Attendance" -> isAttendanceScreen.value = true
-                "Settings" -> isSettingsScreen.value = true
-            }
-        }
+    fun navigate(screen: Screen) {
+        currentScreen.value = screen
     }
 
     fun logout() = viewModelScope.launch {
@@ -84,7 +71,6 @@ class MainViewModel : ViewModel() {
         return loginResult
     }
 
-
     fun getAttendanceInfo(): List<Attendance> {
         val sessionCookie = sessionManager.loadSession()?.session ?: return emptyList()
         val url = "https://portal.uad.ac.id/presensi/Kuliah"
@@ -100,14 +86,19 @@ class MainViewModel : ViewModel() {
         return response.statusCode() == 200
     }
 
-    private fun connectJsoup(url: String, cookie: String, data: Map<String, String> = emptyMap(), method: Connection.Method): Connection.Response =
+    private fun connectJsoup(
+        url: String,
+        cookie: String,
+        data: Map<String, String> = emptyMap(),
+        method: Connection.Method
+    ): Connection.Response =
         Jsoup.connect(url).cookie("portal_session", cookie).data(data).method(method).execute()
 
     private fun parseAttendanceInfo(response: Connection.Response): List<Attendance> {
         val doc: Document = response.parse()
         val infoElement = doc.select("div.note.note-info")
         if (!infoElement.isEmpty() && infoElement.text().contains("Tidak ada Presensi Kelas Matakuliah saat ini.")) {
-            return listOf(Attendance("N/A", "N/A", 0, "N/A", "N/A", "N/A", "N/A", "Tidak ada Presensi Kelas Matakuliah saat ini.", "", ""))
+            return listOf(Attendance(null, null, 0, null, null, null, null, "Tidak ada Presensi Kelas Matakuliah saat ini.", null, null))
         }
         val attendanceTables = doc.select("div.m-heading-1.border-green.m-bordered")
         return attendanceTables.mapNotNull { table -> parseTableToAttendance(table).getOrNull() }
@@ -115,12 +106,12 @@ class MainViewModel : ViewModel() {
 
     private fun parseTableToAttendance(table: Element): Result<Attendance> = runCatching {
         val rows = table.select("table.table-hover.table-light tr")
-        val courseClass = rows[0].select("td")[2].text()
-        val semester = rows[1].select("td")[2].text()
-        val meetingNumber = rows[2].select("td")[2].text().toInt()
-        val meetingDate = rows[3].select("td")[2].text()
-        val material = rows[4].select("td")[2].text()
-        val attendanceStart = rows[5].select("td")[2].text()
+        val courseClass = rows[0].select("td").getOrNull(2)?.text()
+        val semester = rows[1].select("td").getOrNull(2)?.text()
+        val meetingNumber = rows[2].select("td").getOrNull(2)?.text()?.toInt()
+        val meetingDate = rows[3].select("td").getOrNull(2)?.text()
+        val material = rows[4].select("td").getOrNull(2)?.text()
+        val attendanceStart = rows[5].select("td").getOrNull(2)?.text()
         val information = table.select("div.note.note-info").text().replaceFirst("Informasi", "").trim()
 
         val klsdtId = table.select("input[name=klsdt_id]").`val`()

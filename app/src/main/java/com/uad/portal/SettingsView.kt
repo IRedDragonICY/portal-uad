@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsView(mainViewModel: MainViewModel) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-        Button(onClick = mainViewModel::navigateHome) {
+        Button(onClick = { mainViewModel.navigate(Screen.Home) }) {
             Text("Back")
         }
     }

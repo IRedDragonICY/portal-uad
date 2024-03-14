@@ -28,12 +28,12 @@ fun HomeView(mainViewModel: MainViewModel) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { mainViewModel.toggleScreen(isAttendance = true) }) {
+        Button(onClick = { mainViewModel.navigate(Screen.Attendance) }) {
             Text("Absensi")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { mainViewModel.toggleScreen(isAttendance = false) }) {
+        Button(onClick = { mainViewModel.navigate(Screen.Settings) }) {
             Text("Settings")
         }
         Spacer(modifier = Modifier.height(16.dp))
