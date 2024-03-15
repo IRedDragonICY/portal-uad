@@ -35,7 +35,7 @@ class MainViewModel : ViewModel() {
 
     fun initSessionManager(context: Context) {
         sessionManager = SessionManager(context)
-        val session = sessionManager.loadSession()
+        val session = sessionManager.loadPortalSession()
         session?.let {
             isLoggedInState.value = true
             userInfoState.value = it.userInfo
@@ -85,14 +85,14 @@ class MainViewModel : ViewModel() {
 
 
     fun getAttendanceInfo(): List<Attendance> {
-        val sessionCookie = sessionManager.loadSession()?.session ?: return emptyList()
+        val sessionCookie = sessionManager.loadPortalSession()?.session ?: return emptyList()
         val url = "https://portal.uad.ac.id/presensi/Kuliah"
         val response = connectJsoup(url, sessionCookie, method = Connection.Method.GET)
         return parseAttendanceInfo(response)
     }
 
     fun markAttendance(klsdtId: String, presklsId: String): Boolean {
-        val sessionCookie = sessionManager.loadSession()?.session ?: return false
+        val sessionCookie = sessionManager.loadPortalSession()?.session ?: return false
         val url = "https://portal.uad.ac.id/presensi/Kuliah/index"
         val data = mapOf("klsdt_id" to klsdtId, "preskls_id" to presklsId, "action" to "btnpresensi")
         val response = connectJsoup(url, sessionCookie, data, Connection.Method.POST)
@@ -106,7 +106,7 @@ class MainViewModel : ViewModel() {
         if (session != null && username != null) {
             val url = "https://reglab.tif.uad.ac.id/ajax/pemilihan-jadwal-praktikum/$username"
             val response = Jsoup.connect(url)
-                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.session)
+                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.session!!)
                 .ignoreContentType(true)
                 .execute()
             val json = response.body()

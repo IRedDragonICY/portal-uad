@@ -23,20 +23,27 @@ class SessionManager(context: Context) {
 
     private val gson = Gson()
 
-    fun saveSession(session: Session) {
+    fun savePortalSession(session: Session) {
         val sessionJson = gson.toJson(session)
         sharedPref.edit {
-            putString("session", sessionJson)
+            putString("portal_session", sessionJson)
         }
     }
 
-    fun loadSession(): Session? {
-        val sessionJson = sharedPref.getString("session", null)
+    fun loadPortalSession(): Session? {
+        val sessionJson = sharedPref.getString("portal_session", null)
         return if (sessionJson != null) {
             val type = object : TypeToken<Session>() {}.type
             gson.fromJson(sessionJson, type)
         } else {
             null
+        }
+    }
+
+    fun saveReglabSession(session: ReglabSession) {
+        val sessionJson = gson.toJson(session)
+        sharedPref.edit {
+            putString("reglab_session", sessionJson)
         }
     }
 
@@ -57,15 +64,8 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun saveReglabSession(session: ReglabSession) {
-        val sessionJson = gson.toJson(session)
-        sharedPref.edit {
-            putString("session", sessionJson)
-        }
-    }
-
     fun loadReglabSession(): ReglabSession? {
-        val sessionJson = sharedPref.getString("session", null)
+        val sessionJson = sharedPref.getString("reglab_session", null)
         return if (sessionJson != null) {
             val type = object : TypeToken<ReglabSession>() {}.type
             gson.fromJson(sessionJson, type)
@@ -73,6 +73,7 @@ class SessionManager(context: Context) {
             null
         }
     }
+
 
     fun clearSession() {
         sharedPref.edit {

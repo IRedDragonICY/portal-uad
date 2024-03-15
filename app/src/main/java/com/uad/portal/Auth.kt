@@ -66,7 +66,7 @@ class Auth {
         val loginResult = checkLogin(response)
         if (loginResult.userInfo != null && sessionCookie != null) {
             val userInfo = getUserInfo(sessionCookie)
-            sessionManager.saveSession(Session(sessionCookie, userInfo))
+            sessionManager.savePortalSession(Session(sessionCookie, userInfo))
             return LoginResult(userInfo, null)
         }
         return loginResult
