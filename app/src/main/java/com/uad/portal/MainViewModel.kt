@@ -106,7 +106,7 @@ class MainViewModel : ViewModel() {
         if (session != null && username != null) {
             val url = "https://reglab.tif.uad.ac.id/ajax/pemilihan-jadwal-praktikum/$username"
             val response = Jsoup.connect(url)
-                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d)
+                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.session)
                 .ignoreContentType(true)
                 .execute()
             val json = response.body()
