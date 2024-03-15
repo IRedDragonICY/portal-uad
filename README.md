@@ -1,7 +1,7 @@
 # Portal UAD (Universitas Ahmad Dahlan) 
 
 <div align="center">
-    <img src="app/src/main/icon-playstore.png" width="200" height="200"/>
+    <img src="assets/Feature Graphics Portal.jpg" />
 </div>
 
 [![GitHub license](https://img.shields.io/github/license/Naereen/StrapDown.js.svg)](LICENSE)
@@ -39,6 +39,9 @@
 
 ## 📖 About
 
+<div align="center">
+    <img src="app/src/main/icon-playstore.png" width="256"/>
+</div>
 Portal UAD is an Android application that serves as a one-stop solution for all the academic needs of the students of Universitas Ahmad Dahlan. It provides a user-friendly interface to access various academic services including but not limited to viewing academic information, attendance, and more.
 
 ## 🎁 Features
