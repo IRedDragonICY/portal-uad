@@ -6,7 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -99,6 +102,7 @@ data class Hari(
     val updated_at: String
 )
 
+
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager
     private val auth = Auth()
@@ -173,6 +177,24 @@ class MainViewModel : ViewModel() {
         val response = connectJsoup(url, sessionCookie, data, Connection.Method.POST)
         return response.statusCode() == 200
     }
+
+    suspend fun fetchScheduleData(): Response = withContext(Dispatchers.IO) {
+        val session = sessionManager.loadReglabSession()
+        val username = session?.credentials?.username
+
+        if (session != null && username != null) {
+            val url = "https://reglab.tif.uad.ac.id/ajax/pemilihan-jadwal-praktikum/$username"
+            val response = Jsoup.connect(url)
+                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d)
+                .ignoreContentType(true)
+                .execute()
+            val json = response.body()
+            val gson = Gson()
+            return@withContext gson.fromJson(json, Response::class.java)
+        }
+        throw Exception("Failed to load session")
+    }
+
 
     private fun connectJsoup(
         url: String,
