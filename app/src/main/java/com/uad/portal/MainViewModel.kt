@@ -39,16 +39,15 @@ class MainViewModel : ViewModel() {
             autoLogin()
         }
     }
+
     fun initAttendanceWorker(context: Context) {
         val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(3, TimeUnit.MINUTES).build()
         WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
     }
 
-    fun autoLogin() = viewModelScope.launch {
+    private fun autoLogin() = viewModelScope.launch {
         val credentials = sessionManager.loadCredentials()
-        credentials?.let {
-            login(it)
-        }
+        credentials?.let { login(it) }
     }
 
     fun navigate(screen: Screen) {
@@ -56,12 +55,10 @@ class MainViewModel : ViewModel() {
     }
 
     fun logout() = viewModelScope.launch {
-        auth.logoutPortal().let { isLoggedOut ->
-            if (isLoggedOut) {
-                sessionManager.clearSession()
-                isLoggedInState.value = false
-                userInfoState.value = null
-            }
+        if (auth.logoutPortal()) {
+            sessionManager.clearSession()
+            isLoggedInState.value = false
+            userInfoState.value = null
         }
     }
 
@@ -73,6 +70,7 @@ class MainViewModel : ViewModel() {
                 userInfoState.value = it
             }
         }
+
         val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
         val reglabLoginResult = auth.loginReglab(reglabCredentials, sessionManager)
         if (reglabLoginResult.success) {

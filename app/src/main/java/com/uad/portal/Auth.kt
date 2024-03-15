@@ -11,6 +11,7 @@ data class ReglabCredentials(val username: String, val password: String)
 data class LoginResult(val userInfo: UserInfo?, val errorMessage: String?)
 data class ReglabLoginResult(val success: Boolean, val errorMessage: String?)
 
+
 class Auth {
     companion object {
         private const val PORTAL_LOGIN_URL = "https://portal.uad.ac.id/login"
@@ -21,8 +22,14 @@ class Auth {
     }
 
     // Portal Auth Methods
-    private suspend fun loginPortal(credentials: Credentials) = executeConnection(PORTAL_LOGIN_URL, Connection.Method.POST, credentials)
+    private suspend fun loginPortal(credentials: Credentials) = executeConnection(
+        PORTAL_LOGIN_URL,
+        Connection.Method.POST,
+        portalCredentials = credentials
+    )
+
     suspend fun logoutPortal(): Boolean = executeConnection(PORTAL_LOGOUT_URL, Connection.Method.GET).statusCode() == 200
+
     private fun checkLogin(response: Connection.Response): LoginResult {
         val doc = response.parse()
         val loginForm = doc.select("div.form-login")
@@ -33,13 +40,13 @@ class Auth {
         }
         return LoginResult(UserInfo(), "")
     }
+
     private fun getResponseWithCookie(url: String, cookieName: String, cookieValue: String): Connection.Response {
         return Jsoup.connect(url)
             .cookie(cookieName, cookieValue)
             .method(Connection.Method.GET)
             .execute()
     }
-
 
     private suspend fun executeConnection(
         url: String,
@@ -54,21 +61,25 @@ class Auth {
             .apply {
                 when {
                     method == Connection.Method.POST && portalCredentials != null -> {
-                        data("login", portalCredentials.username, "password", portalCredentials.password, "remember", "1")
+                        data(
+                            "login", portalCredentials.username,
+                            "password", portalCredentials.password,
+                            "remember", "1"
+                        )
                     }
                     method == Connection.Method.POST && reglabCredentials != null && token != null && cookies != null -> {
                         cookies(cookies)
-                        data("_token", token)
-                        data("email", "${reglabCredentials.username}@webmail.uad.ac.id")
-                        data("password", reglabCredentials.password)
-                        data("remember", "on")
+                        data(
+                            "_token", token,
+                            "email", "${reglabCredentials.username}@webmail.uad.ac.id",
+                            "password", reglabCredentials.password,
+                            "remember", "on"
+                        )
                     }
                 }
             }
             .execute()
     }
-
-
 
     private fun getUserInfo(sessionCookie: String): UserInfo {
         val response = getResponseWithCookie(PORTAL_DASHBOARD_URL, "portal_session", sessionCookie)
@@ -85,6 +96,7 @@ class Auth {
 
         return UserInfo(username, avatarUrl, ipk, sks)
     }
+
     private suspend fun processLogin(sessionManager: SessionManager, credentials: Credentials): LoginResult {
         val response = loginPortal(credentials)
         val sessionCookie = response.cookie("portal_session")
@@ -96,6 +108,7 @@ class Auth {
         }
         return loginResult
     }
+
     suspend fun login(sessionManager: SessionManager, credentials: Credentials): LoginResult {
         val loginResult = processLogin(sessionManager, credentials)
         if (loginResult.userInfo != null) {
@@ -110,22 +123,27 @@ class Auth {
             .method(Connection.Method.GET)
             .execute()
     }
+
     private fun getToken(response: Connection.Response): String {
         val doc = response.parse()
         return doc.select("input[name=_token]").first()?.attr("value") ?: ""
     }
+
     private fun loginReglab(credentials: ReglabCredentials, token: String, cookies: Map<String, String>): Connection.Response {
         return Jsoup.connect(REGLAB_LOGIN_URL)
             .method(Connection.Method.POST)
             .cookies(cookies)
             .apply {
-                data("_token", token)
-                data("email", "${credentials.username}@webmail.uad.ac.id")
-                data("password", credentials.password)
-                data("remember", "on")
+                data(
+                    "_token", token,
+                    "email", "${credentials.username}@webmail.uad.ac.id",
+                    "password", credentials.password,
+                    "remember", "on"
+                )
             }
             .execute()
     }
+
     private fun checkLoginReglab(response: Connection.Response): ReglabLoginResult {
         val doc = response.parse()
         val loginForm = doc.select("form.py-2")
@@ -134,6 +152,7 @@ class Auth {
         }
         return ReglabLoginResult(true, null)
     }
+
     fun loginReglab(credentials: ReglabCredentials, sessionManager: SessionManager): ReglabLoginResult {
         val session = sessionManager.loadReglabSession()
         if (session != null) {

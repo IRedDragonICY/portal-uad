@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun AppContent(mainViewModel: MainViewModel) {
-        when(mainViewModel.currentScreen.value) {
+        when (mainViewModel.currentScreen.value) {
             Screen.Attendance -> AttendanceView(mainViewModel)
             Screen.Settings -> SettingsView(mainViewModel)
             Screen.Reglab -> ReglabView(mainViewModel)
@@ -61,5 +61,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
