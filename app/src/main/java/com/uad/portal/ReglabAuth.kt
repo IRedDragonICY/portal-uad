@@ -74,13 +74,11 @@ class ReglabAuth {
         if (cookieValue != null) {
             val loginResult = checkLogin(response)
             if (loginResult.success) {
-                val session = ReglabSession(remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d = cookieValue, credentials = credentials)
+                val session = ReglabSession(session = cookieValue, credentials = credentials)
                 sessionManager.saveReglabSession(session)
             }
             return loginResult
         }
         return ReglabLoginResult(false, "Failed to get cookie")
     }
-
 }
-

@@ -1,6 +1,5 @@
 package com.uad.portal
 
-
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
@@ -8,7 +7,6 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-
 
 class SessionManager(context: Context) {
     private val masterKey = MasterKey.Builder(context)
@@ -58,15 +56,16 @@ class SessionManager(context: Context) {
             null
         }
     }
+
     fun saveReglabSession(session: ReglabSession) {
         val sessionJson = gson.toJson(session)
         sharedPref.edit {
-            putString("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", sessionJson)
+            putString("session", sessionJson)
         }
     }
 
     fun loadReglabSession(): ReglabSession? {
-        val sessionJson = sharedPref.getString("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", null)
+        val sessionJson = sharedPref.getString("session", null)
         return if (sessionJson != null) {
             val type = object : TypeToken<ReglabSession>() {}.type
             gson.fromJson(sessionJson, type)
