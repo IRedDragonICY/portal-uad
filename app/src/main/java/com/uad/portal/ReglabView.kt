@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ReglabView(mainViewModel: MainViewModel) {
-    val scheduleData = remember { mutableStateOf<Response?>(null) }
+    val scheduleData = remember { mutableStateOf<PracticumInfo?>(null) }
 
     LaunchedEffect(Unit) {
         try {
