@@ -6,46 +6,72 @@ import org.jsoup.Connection
 import org.jsoup.Jsoup
 
 data class Credentials(val username: String, val password: String)
+data class ReglabCredentials(val username: String, val password: String)
+
 data class LoginResult(val userInfo: UserInfo?, val errorMessage: String?)
+data class ReglabLoginResult(val success: Boolean, val errorMessage: String?)
 
 class Auth {
     companion object {
-        private const val LOGIN_URL = "https://portal.uad.ac.id/login"
-        private const val LOGOUT_URL = "https://portal.uad.ac.id/logout"
-        private const val DASHBOARD_URL = "https://portal.uad.ac.id/dashboard"
+        private const val PORTAL_LOGIN_URL = "https://portal.uad.ac.id/login"
+        private const val PORTAL_LOGOUT_URL = "https://portal.uad.ac.id/logout"
+        private const val PORTAL_DASHBOARD_URL = "https://portal.uad.ac.id/dashboard"
+        private const val REGLAB_LOGIN_URL = "https://reglab.tif.uad.ac.id/login"
+        private const val REGLAB_COOKIE_NAME = "remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d"
     }
 
-    private suspend fun executeConnection(url: String, method: Connection.Method, credentials: Credentials? = null): Connection.Response = withContext(Dispatchers.IO) {
-        return@withContext Jsoup.connect(url)
-            .method(method)
-            .apply { if (method == Connection.Method.POST && credentials != null) data("login", credentials.username, "password", credentials.password, "remember", "1") }
-            .execute()
-    }
-
-    private suspend fun loginPortal(credentials: Credentials) = executeConnection(LOGIN_URL, Connection.Method.POST, credentials)
-
-    suspend fun logoutPortal(): Boolean = executeConnection(LOGOUT_URL, Connection.Method.GET).statusCode() == 200
-
-    private suspend fun checkLogin(response: Connection.Response): LoginResult = withContext(Dispatchers.IO) {
+    // Portal Auth Methods
+    private suspend fun loginPortal(credentials: Credentials) = executeConnection(PORTAL_LOGIN_URL, Connection.Method.POST, credentials)
+    suspend fun logoutPortal(): Boolean = executeConnection(PORTAL_LOGOUT_URL, Connection.Method.GET).statusCode() == 200
+    private fun checkLogin(response: Connection.Response): LoginResult {
         val doc = response.parse()
         val loginForm = doc.select("div.form-login")
         if (loginForm.isNotEmpty()) {
             val errorElement = doc.select("div.form-group.has-error div.help-block")
             val errorMessage = errorElement.first()?.text() ?: "Unknown error"
-            return@withContext LoginResult(null, errorMessage)
+            return LoginResult(null, errorMessage)
         }
-        return@withContext LoginResult(UserInfo(), "")
+        return LoginResult(UserInfo(), "")
     }
-
-    private suspend fun getResponseWithCookie(url: String, cookieName: String, cookieValue: String): Connection.Response = withContext(Dispatchers.IO) {
-        return@withContext Jsoup.connect(url)
+    private fun getResponseWithCookie(url: String, cookieName: String, cookieValue: String): Connection.Response {
+        return Jsoup.connect(url)
             .cookie(cookieName, cookieValue)
             .method(Connection.Method.GET)
             .execute()
     }
 
-    private suspend fun getUserInfo(sessionCookie: String): UserInfo = withContext(Dispatchers.IO) {
-        val response = getResponseWithCookie(DASHBOARD_URL, "portal_session", sessionCookie)
+
+    private suspend fun executeConnection(
+        url: String,
+        method: Connection.Method,
+        portalCredentials: Credentials? = null,
+        reglabCredentials: ReglabCredentials? = null,
+        token: String? = null,
+        cookies: Map<String, String>? = null
+    ): Connection.Response = withContext(Dispatchers.IO) {
+        return@withContext Jsoup.connect(url)
+            .method(method)
+            .apply {
+                when {
+                    method == Connection.Method.POST && portalCredentials != null -> {
+                        data("login", portalCredentials.username, "password", portalCredentials.password, "remember", "1")
+                    }
+                    method == Connection.Method.POST && reglabCredentials != null && token != null && cookies != null -> {
+                        cookies(cookies)
+                        data("_token", token)
+                        data("email", "${reglabCredentials.username}@webmail.uad.ac.id")
+                        data("password", reglabCredentials.password)
+                        data("remember", "on")
+                    }
+                }
+            }
+            .execute()
+    }
+
+
+
+    private fun getUserInfo(sessionCookie: String): UserInfo {
+        val response = getResponseWithCookie(PORTAL_DASHBOARD_URL, "portal_session", sessionCookie)
         val doc = response.parse()
         val userElement = doc.select("a.dropdown-toggle")
         var username = ""
@@ -57,9 +83,8 @@ class Auth {
         val ipk = doc.select("a.dashboard-stat:contains(IP Kumulatif) div.details div.number").first()?.text() ?: ""
         val sks = doc.select("a.dashboard-stat:contains(SKS) div.details div.number").first()?.text() ?: ""
 
-        return@withContext UserInfo(username, avatarUrl, ipk, sks)
+        return UserInfo(username, avatarUrl, ipk, sks)
     }
-
     private suspend fun processLogin(sessionManager: SessionManager, credentials: Credentials): LoginResult {
         val response = loginPortal(credentials)
         val sessionCookie = response.cookie("portal_session")
@@ -71,7 +96,6 @@ class Auth {
         }
         return loginResult
     }
-
     suspend fun login(sessionManager: SessionManager, credentials: Credentials): LoginResult {
         val loginResult = processLogin(sessionManager, credentials)
         if (loginResult.userInfo != null) {
@@ -80,4 +104,62 @@ class Auth {
         return loginResult
     }
 
+    // Reglab Auth Methods
+    private fun getLoginPage(): Connection.Response {
+        return Jsoup.connect(REGLAB_LOGIN_URL)
+            .method(Connection.Method.GET)
+            .execute()
+    }
+    private fun getToken(response: Connection.Response): String {
+        val doc = response.parse()
+        return doc.select("input[name=_token]").first()?.attr("value") ?: ""
+    }
+    private fun loginReglab(credentials: ReglabCredentials, token: String, cookies: Map<String, String>): Connection.Response {
+        return Jsoup.connect(REGLAB_LOGIN_URL)
+            .method(Connection.Method.POST)
+            .cookies(cookies)
+            .apply {
+                data("_token", token)
+                data("email", "${credentials.username}@webmail.uad.ac.id")
+                data("password", credentials.password)
+                data("remember", "on")
+            }
+            .execute()
+    }
+    private fun checkLoginReglab(response: Connection.Response): ReglabLoginResult {
+        val doc = response.parse()
+        val loginForm = doc.select("form.py-2")
+        if (loginForm.isNotEmpty()) {
+            return ReglabLoginResult(false, "Login failed")
+        }
+        return ReglabLoginResult(true, null)
+    }
+    fun loginReglab(credentials: ReglabCredentials, sessionManager: SessionManager): ReglabLoginResult {
+        val session = sessionManager.loadReglabSession()
+        if (session != null) {
+            val response = getLoginPage()
+            val cookieValue = response.cookie(REGLAB_COOKIE_NAME)
+            if (cookieValue != null) {
+                val loginResult = checkLoginReglab(response)
+                if (loginResult.success) {
+                    return loginResult
+                }
+            }
+        }
+        val loginPageResponse = getLoginPage()
+        val token = getToken(loginPageResponse)
+        val cookies = loginPageResponse.cookies()
+        val response = loginReglab(credentials, token, cookies)
+        val cookieValue = response.cookie(REGLAB_COOKIE_NAME)
+
+        if (cookieValue != null) {
+            val loginResult = checkLoginReglab(response)
+            if (loginResult.success) {
+                val session = ReglabSession(session = cookieValue, credentials = credentials)
+                sessionManager.saveReglabSession(session)
+            }
+            return loginResult
+        }
+        return ReglabLoginResult(false, "Failed to get cookie")
+    }
 }

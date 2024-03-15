@@ -22,12 +22,9 @@ data class PracticumInfo(
     val data: List<DataItem>
 )
 
-
-
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager
     private val auth = Auth()
-    private val reglabAuth = ReglabAuth()
 
     val isLoggedInState = mutableStateOf(false)
     val userInfoState = mutableStateOf<UserInfo?>(null)
@@ -68,19 +65,20 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    suspend fun login(credentials: Credentials): LoginResult {
+    suspend fun login(credentials: Credentials): LoginResult = withContext(Dispatchers.IO) {
         val loginResult = auth.login(sessionManager, credentials)
-        loginResult.userInfo?.let {
-            isLoggedInState.value = true
-            userInfoState.value = it
-
-            val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
-            val reglabLoginResult = reglabAuth.login(reglabCredentials, sessionManager)
-            if (reglabLoginResult.success) {
-                // Do something
+        withContext(Dispatchers.Main) {
+            loginResult.userInfo?.let {
+                isLoggedInState.value = true
+                userInfoState.value = it
             }
         }
-        return loginResult
+        val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
+        val reglabLoginResult = auth.loginReglab(reglabCredentials, sessionManager)
+        if (reglabLoginResult.success) {
+            // Do something if needed
+        }
+        return@withContext loginResult
     }
 
 
