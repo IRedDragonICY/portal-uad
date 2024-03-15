@@ -76,6 +76,22 @@ If you wish to contribute to this project, feel free to submit a pull request. W
 
 This project is licensed under the [MIT License](LICENSE).
 
+---
+## 🧪 Become a Tester
+
+We are actively looking for testers, especially from Universitas Ahmad Dahlan, to help us improve the Portal UAD app. By becoming a tester, you'll have early access to new versions of the app. Your feedback will play a crucial role in identifying bugs and suggesting improvements.
+
+Here's how you can join:
+
+1. **Sign up**: Click on this [link](https://play.google.com/apps/internaltest/4701445162948499674) to sign up as a tester.
+2. **Download**: After you've signed up, you'll be able to download and install the latest testing version of the Portal UAD app from the Google Play Store.
+3. **Provide Feedback**: Use the app as you normally would, and if you come across any bugs or issues, or if you have any suggestions for improvements, please let us know. You can provide your feedback directly through the Google Play Store or by creating an issue on our [GitHub page](https://github.com/IRedDragonICY/portal-uad/issues).
+
+Your participation and feedback are greatly appreciated and will help us make the Portal UAD app better for everyone. Thank you for your interest and support!
+
+---
+
+
 ## 📥 Download Latest Pre-release
 
 To download the latest pre-release version of the application, please visit the [releases page](https://github.com/IRedDragonICY/portal-uad/releases) of our GitHub repository.
