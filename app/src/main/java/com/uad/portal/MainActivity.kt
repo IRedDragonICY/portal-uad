@@ -19,6 +19,7 @@ import com.uad.portal.ui.theme.PortalUADTheme
 import com.uad.portal.views.HomeView
 import com.uad.portal.views.LoginView
 import com.uad.portal.views.ReglabView
+import com.uad.portal.views.SettingsView
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()

@@ -71,7 +71,7 @@ class Auth {
         return@withContext try {
             Jsoup.connect(url)
                 .method(method)
-                .timeout(30000) // Set timeout to 30 seconds
+                .timeout(30000)
                 .apply {
                     when {
                         method == Connection.Method.POST && portalCredentials != null -> {

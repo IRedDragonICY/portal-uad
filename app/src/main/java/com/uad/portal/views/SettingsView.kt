@@ -1,4 +1,4 @@
-package com.uad.portal
+package com.uad.portal.views
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +9,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.uad.portal.MainViewModel
+import com.uad.portal.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
