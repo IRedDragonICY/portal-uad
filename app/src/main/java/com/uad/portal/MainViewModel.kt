@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.gson.Gson
 import com.uad.portal.API.Auth
 import com.uad.portal.API.Credentials
 import com.uad.portal.API.LoginResult
@@ -23,7 +22,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.util.concurrent.TimeUnit
-
 
 
 class MainViewModel : ViewModel() {
@@ -63,11 +61,6 @@ class MainViewModel : ViewModel() {
         WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
     }
 
-    fun tryInitAttendanceWorker(context: Context) {
-        if (isNetworkAvailable.value == true) {
-            initAttendanceWorker(context)
-        }
-    }
 
     private fun autoLogin() = viewModelScope.launch {
         val credentials = sessionManager.loadCredentials()
@@ -121,24 +114,6 @@ class MainViewModel : ViewModel() {
         val response = connectJsoup(url, sessionCookie, data, Connection.Method.POST)
         return response.statusCode() == 200
     }
-
-    suspend fun fetchScheduleData(): PracticumInfo = withContext(Dispatchers.IO) {
-        val session = sessionManager.loadReglabSession()
-        val username = session?.credentials?.username
-
-        if (session != null && username != null) {
-            val url = "https://reglab.tif.uad.ac.id/ajax/pemilihan-jadwal-praktikum/$username"
-            val response = Jsoup.connect(url)
-                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.session!!)
-                .ignoreContentType(true)
-                .execute()
-            val json = response.body()
-            val gson = Gson()
-            return@withContext gson.fromJson(json, PracticumInfo::class.java)
-        }
-        throw Exception("Failed to load session")
-    }
-
 
     private fun connectJsoup(
         url: String,
