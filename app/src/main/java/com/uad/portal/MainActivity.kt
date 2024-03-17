@@ -31,10 +31,10 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launchWhenCreated {
             delay(1000)
             mainViewModel.isNetworkAvailable.observe(this@MainActivity) { isAvailable ->
-                if (isAvailable) {
+                if (isAvailable && mainViewModel.networkChanged) {
                     mainViewModel.initAttendanceWorker(this@MainActivity)
                     Toast.makeText(this@MainActivity, "Internet connection is now available", Toast.LENGTH_LONG).show()
-                } else if (mainViewModel.wasNetworkAvailable()) {
+                } else if (!isAvailable && mainViewModel.networkChanged) {
                     Toast.makeText(this@MainActivity, "Internet connection is not available", Toast.LENGTH_LONG).show()
                 }
             }

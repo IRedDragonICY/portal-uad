@@ -32,9 +32,11 @@ class MainViewModel : ViewModel() {
     val userInfoState = mutableStateOf<UserInfo?>(null)
     val currentScreen = mutableStateOf(Screen.Home)
 
-    val isNetworkAvailable: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
+    val isNetworkAvailable: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+    var networkChanged = false
     private var wasNetworkAvailable = false
+    private var appJustStarted = true
 
     fun wasNetworkAvailable(): Boolean {
         return wasNetworkAvailable
@@ -54,6 +56,9 @@ class MainViewModel : ViewModel() {
         context.unregisterReceiver(networkReceiver)
     }
 
+
+
+
     fun checkNetworkAvailability(context: Context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val isAvailable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -69,15 +74,20 @@ class MainViewModel : ViewModel() {
             networkInfo?.isConnected ?: false
         }
 
-        if (!isAvailable && wasNetworkAvailable) {
+        if (!isAvailable && isNetworkAvailable.value == true && networkChanged) {
             isNetworkAvailable.postValue(false)
-        } else if (isAvailable) {
+        } else if (isAvailable && isNetworkAvailable.value == false && networkChanged) {
             isNetworkAvailable.postValue(true)
         }
 
-        wasNetworkAvailable = isAvailable
-    }
+        if (appJustStarted) {
+            appJustStarted = false
+        } else {
+            networkChanged = true
+        }
 
+        isNetworkAvailable.value = isAvailable
+    }
 
     fun initSessionManager(context: Context) {
         sessionManager = SessionManager(context)
