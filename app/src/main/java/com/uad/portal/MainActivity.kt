@@ -26,16 +26,6 @@ class MainActivity : ComponentActivity() {
 
         mainViewModel.initSessionManager(this)
 
-        mainViewModel.isNetworkAvailable.observe(this) { isAvailable ->
-            if (isAvailable) {
-                mainViewModel.initAttendanceWorker(this)
-                Toast.makeText(this, "Internet connection is available", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this, "Internet connection is not available", Toast.LENGTH_LONG).show()
-            }
-        }
-
-
         setContent {
             PortalUADTheme {
                 Surface(
@@ -55,11 +45,21 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         mainViewModel.registerNetworkCallback(this)
+
+        mainViewModel.isNetworkAvailable.observe(this) { isAvailable ->
+            if (isAvailable) {
+                mainViewModel.initAttendanceWorker(this)
+                Toast.makeText(this, "Internet connection is available", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Internet connection is not available", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     override fun onStop() {
         super.onStop()
         mainViewModel.unregisterNetworkCallback(this)
+        mainViewModel.isNetworkAvailable.removeObservers(this)
     }
 
     private fun createNotificationChannel() {
