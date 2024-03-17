@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.uad.portal.MainViewModel
 import com.uad.portal.PracticumInfo
-import com.uad.portal.Screen
 
 @Composable
 fun ReglabView(mainViewModel: MainViewModel) {

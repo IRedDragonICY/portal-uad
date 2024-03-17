@@ -1,4 +1,4 @@
-package com.uad.portal
+package com.uad.portal.views
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.uad.portal.MainViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -25,6 +26,7 @@ data class Attendance(
 
 @Composable
 fun AttendanceView(mainViewModel: MainViewModel) {
+    val portal = mainViewModel.portal
     val coroutineScope = rememberCoroutineScope()
     val attendanceInfo = remember { mutableStateOf(emptyList<Attendance>()) }
     val isAttendanceInfoLoaded = remember { mutableStateOf(false) }
@@ -32,7 +34,7 @@ fun AttendanceView(mainViewModel: MainViewModel) {
     LaunchedEffect(Unit) {
         if (!isAttendanceInfoLoaded.value) {
             coroutineScope.launch(Dispatchers.IO) {
-                attendanceInfo.value = mainViewModel.getAttendanceInfo()
+                attendanceInfo.value = portal.getAttendanceInfo()
                 isAttendanceInfoLoaded.value = true
             }
         }
@@ -54,8 +56,8 @@ fun AttendanceView(mainViewModel: MainViewModel) {
                             coroutineScope.launch(Dispatchers.IO) {
                                 attendance.klsdtId?.let { klsdtId ->
                                     attendance.presklsId?.let { presklsId ->
-                                        if (mainViewModel.markAttendance(klsdtId, presklsId)) {
-                                            attendanceInfo.value = mainViewModel.getAttendanceInfo()
+                                        if (portal.markAttendance(klsdtId, presklsId)) {
+                                            attendanceInfo.value = portal.getAttendanceInfo()
                                         }
                                     }
                                 }

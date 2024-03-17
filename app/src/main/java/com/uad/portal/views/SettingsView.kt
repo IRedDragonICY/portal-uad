@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.uad.portal.MainViewModel
-import com.uad.portal.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

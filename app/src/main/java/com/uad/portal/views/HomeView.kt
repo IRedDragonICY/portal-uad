@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 import com.uad.portal.MainViewModel
-import com.uad.portal.Screen
 
 @Composable
 fun HomeView(mainViewModel: MainViewModel) {

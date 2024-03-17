@@ -14,6 +14,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.uad.portal.API.portal
+import com.uad.portal.views.Attendance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -23,6 +25,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         sessionManager = SessionManager(applicationContext)
+        val portal = portal(sessionManager)
         val mainViewModel = MainViewModel()
         mainViewModel.initSessionManager(applicationContext)
 
@@ -30,7 +33,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
             return@withContext Result.retry()
         }
 
-        val attendanceInfo = mainViewModel.getAttendanceInfo()
+        val attendanceInfo = portal.getAttendanceInfo()
 
         if (attendanceInfo.isNotEmpty()) {
             sendNotification(attendanceInfo)
@@ -38,6 +41,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
 
         Result.success()
     }
+
 
 
     private fun sendNotification(attendanceInfo: List<Attendance>) {

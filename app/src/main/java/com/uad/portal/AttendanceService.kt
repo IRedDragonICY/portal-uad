@@ -1,11 +1,13 @@
 import android.app.IntentService
 import android.content.Intent
+import com.uad.portal.API.portal
 import com.uad.portal.MainViewModel
+import com.uad.portal.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class AttendanceService : IntentService("AttendanceService") {
+class AttendanceService(private val sessionManager: SessionManager) : IntentService("AttendanceService") {
 
     override fun onHandleIntent(intent: Intent?) {
         val klsdtId = intent?.getStringExtra("klsdtId") ?: return
@@ -19,8 +21,12 @@ class AttendanceService : IntentService("AttendanceService") {
             stopSelf()
             return
         }
+
+        val portal = portal(sessionManager)
+
         CoroutineScope(Dispatchers.IO).launch {
-            viewModel.markAttendance(klsdtId, presklsId)
+            portal.markAttendance(klsdtId, presklsId)
         }
     }
+
 }

@@ -1,4 +1,4 @@
-package com.uad.portal
+package com.uad.portal.views
 
 enum class Screen {
     Home,
