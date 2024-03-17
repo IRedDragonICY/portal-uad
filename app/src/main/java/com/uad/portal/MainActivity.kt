@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -21,8 +22,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         mainViewModel.initSessionManager(this)
-        mainViewModel.initAttendanceWorker(this)
+
+        mainViewModel.isNetworkAvailable.observe(this) { isAvailable ->
+            if (isAvailable) {
+                mainViewModel.initAttendanceWorker(this)
+            } else {
+                Toast.makeText(this, "Internet connection is not available", Toast.LENGTH_LONG).show()
+            }
+        }
+        mainViewModel.checkNetworkAvailability(this)
+
         setContent {
             PortalUADTheme {
                 Surface(

@@ -4,13 +4,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Connection
 import org.jsoup.Jsoup
+import java.io.IOException
+import java.net.SocketTimeoutException
 
 data class Credentials(val username: String, val password: String)
 data class ReglabCredentials(val username: String, val password: String)
 
 data class LoginResult(val userInfo: UserInfo?, val errorMessage: String?)
 data class ReglabLoginResult(val success: Boolean, val errorMessage: String?)
-
 
 class Auth {
     companion object {
@@ -42,10 +43,17 @@ class Auth {
     }
 
     private fun getResponseWithCookie(url: String, cookieName: String, cookieValue: String): Connection.Response {
-        return Jsoup.connect(url)
-            .cookie(cookieName, cookieValue)
-            .method(Connection.Method.GET)
-            .execute()
+        return try {
+            Jsoup.connect(url)
+                .cookie(cookieName, cookieValue)
+                .method(Connection.Method.GET)
+                .execute()
+        } catch (e: IOException) {
+            when (e) {
+                is SocketTimeoutException -> throw SocketTimeoutException("Connection timed out")
+                else -> throw IOException("No internet connection", e)
+            }
+        }
     }
 
     private suspend fun executeConnection(
@@ -56,30 +64,39 @@ class Auth {
         token: String? = null,
         cookies: Map<String, String>? = null
     ): Connection.Response = withContext(Dispatchers.IO) {
-        return@withContext Jsoup.connect(url)
-            .method(method)
-            .apply {
-                when {
-                    method == Connection.Method.POST && portalCredentials != null -> {
-                        data(
-                            "login", portalCredentials.username,
-                            "password", portalCredentials.password,
-                            "remember", "1"
-                        )
-                    }
-                    method == Connection.Method.POST && reglabCredentials != null && token != null && cookies != null -> {
-                        cookies(cookies)
-                        data(
-                            "_token", token,
-                            "email", "${reglabCredentials.username}@webmail.uad.ac.id",
-                            "password", reglabCredentials.password,
-                            "remember", "on"
-                        )
+        return@withContext try {
+            Jsoup.connect(url)
+                .method(method)
+                .timeout(30000) // Set timeout to 30 seconds
+                .apply {
+                    when {
+                        method == Connection.Method.POST && portalCredentials != null -> {
+                            data(
+                                "login", portalCredentials.username,
+                                "password", portalCredentials.password,
+                                "remember", "1"
+                            )
+                        }
+                        method == Connection.Method.POST && reglabCredentials != null && token != null && cookies != null -> {
+                            cookies(cookies)
+                            data(
+                                "_token", token,
+                                "email", "${reglabCredentials.username}@webmail.uad.ac.id",
+                                "password", reglabCredentials.password,
+                                "remember", "on"
+                            )
+                        }
                     }
                 }
+                .execute()
+        } catch (e: IOException) {
+            when (e) {
+                is SocketTimeoutException -> throw SocketTimeoutException("Connection timed out. Please try again.")
+                else -> throw IOException("No internet connection", e)
             }
-            .execute()
+        }
     }
+
 
     private fun getUserInfo(sessionCookie: String): UserInfo {
         val response = getResponseWithCookie(PORTAL_DASHBOARD_URL, "portal_session", sessionCookie)
@@ -119,9 +136,16 @@ class Auth {
 
     // Reglab Auth Methods
     private fun getLoginPage(): Connection.Response {
-        return Jsoup.connect(REGLAB_LOGIN_URL)
-            .method(Connection.Method.GET)
-            .execute()
+        return try {
+            Jsoup.connect(REGLAB_LOGIN_URL)
+                .method(Connection.Method.GET)
+                .execute()
+        } catch (e: IOException) {
+            when (e) {
+                is SocketTimeoutException -> throw SocketTimeoutException("Connection timed out")
+                else -> throw IOException("No internet connection", e)
+            }
+        }
     }
 
     private fun getToken(response: Connection.Response): String {
@@ -130,18 +154,25 @@ class Auth {
     }
 
     private fun loginReglab(credentials: ReglabCredentials, token: String, cookies: Map<String, String>): Connection.Response {
-        return Jsoup.connect(REGLAB_LOGIN_URL)
-            .method(Connection.Method.POST)
-            .cookies(cookies)
-            .apply {
-                data(
-                    "_token", token,
-                    "email", "${credentials.username}@webmail.uad.ac.id",
-                    "password", credentials.password,
-                    "remember", "on"
-                )
+        return try {
+            Jsoup.connect(REGLAB_LOGIN_URL)
+                .method(Connection.Method.POST)
+                .cookies(cookies)
+                .apply {
+                    data(
+                        "_token", token,
+                        "email", "${credentials.username}@webmail.uad.ac.id",
+                        "password", credentials.password,
+                        "remember", "on"
+                    )
+                }
+                .execute()
+        } catch (e: IOException) {
+            when (e) {
+                is SocketTimeoutException -> throw SocketTimeoutException("Connection timed out")
+                else -> throw IOException("No internet connection", e)
             }
-            .execute()
+        }
     }
 
     private fun checkLoginReglab(response: Connection.Response): ReglabLoginResult {
@@ -154,8 +185,8 @@ class Auth {
     }
 
     fun loginReglab(credentials: ReglabCredentials, sessionManager: SessionManager): ReglabLoginResult {
-        val session = sessionManager.loadReglabSession()
-        if (session != null) {
+        val reglabSession = sessionManager.loadReglabSession()
+        if (reglabSession != null) {
             val response = getLoginPage()
             val cookieValue = response.cookie(REGLAB_COOKIE_NAME)
             if (cookieValue != null) {
@@ -174,8 +205,8 @@ class Auth {
         if (cookieValue != null) {
             val loginResult = checkLoginReglab(response)
             if (loginResult.success) {
-                val session = ReglabSession(session = cookieValue, credentials = credentials)
-                sessionManager.saveReglabSession(session)
+                val newReglabSession = ReglabSession(session = cookieValue, credentials = credentials)
+                sessionManager.saveReglabSession(newReglabSession)
             }
             return loginResult
         }

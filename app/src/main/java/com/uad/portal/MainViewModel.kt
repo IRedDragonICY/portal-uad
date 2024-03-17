@@ -1,7 +1,11 @@
 package com.uad.portal
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
@@ -30,6 +34,20 @@ class MainViewModel : ViewModel() {
     val userInfoState = mutableStateOf<UserInfo?>(null)
     val currentScreen = mutableStateOf(Screen.Home)
 
+    val isNetworkAvailable: MutableLiveData<Boolean> = MutableLiveData<Boolean>()
+
+    fun checkNetworkAvailability(context: Context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return isNetworkAvailable.postValue(false)
+            val activeNetwork: NetworkCapabilities? = connectivityManager.getNetworkCapabilities(network)
+            isNetworkAvailable.postValue(activeNetwork?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false)
+        } else {
+            val networkInfo = connectivityManager.activeNetworkInfo
+            isNetworkAvailable.postValue(networkInfo?.isConnected ?: false)
+        }
+    }
+
     fun initSessionManager(context: Context) {
         sessionManager = SessionManager(context)
         val session = sessionManager.loadPortalSession()
@@ -43,6 +61,12 @@ class MainViewModel : ViewModel() {
     fun initAttendanceWorker(context: Context) {
         val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(3, TimeUnit.MINUTES).build()
         WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
+    }
+
+    fun tryInitAttendanceWorker(context: Context) {
+        if (isNetworkAvailable.value == true) {
+            initAttendanceWorker(context)
+        }
     }
 
     private fun autoLogin() = viewModelScope.launch {
@@ -71,10 +95,13 @@ class MainViewModel : ViewModel() {
             }
         }
 
-        val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
-        val reglabLoginResult = auth.loginReglab(reglabCredentials, sessionManager)
-        if (reglabLoginResult.success) {
-            // Do something if needed
+        val reglabSession = sessionManager.loadReglabSession()
+        if (reglabSession == null) {
+            val reglabCredentials = ReglabCredentials(credentials.username, credentials.password)
+            val reglabLoginResult = auth.loginReglab(reglabCredentials, sessionManager)
+            if (reglabLoginResult.success) {
+                // Do something if needed
+            }
         }
         return@withContext loginResult
     }

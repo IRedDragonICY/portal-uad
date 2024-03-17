@@ -15,6 +15,10 @@ class AttendanceService : IntentService("AttendanceService") {
             initSessionManager(this@AttendanceService)
         }
 
+        if (!viewModel.isNetworkAvailable.value!!) {
+            stopSelf()
+            return
+        }
         CoroutineScope(Dispatchers.IO).launch {
             viewModel.markAttendance(klsdtId, presklsId)
         }

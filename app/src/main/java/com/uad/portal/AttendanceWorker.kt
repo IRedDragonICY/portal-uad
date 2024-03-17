@@ -19,13 +19,16 @@ import kotlinx.coroutines.withContext
 
 class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
-
     private lateinit var sessionManager: SessionManager
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         sessionManager = SessionManager(applicationContext)
         val mainViewModel = MainViewModel()
         mainViewModel.initSessionManager(applicationContext)
+
+        if (!mainViewModel.isNetworkAvailable.value!!) {
+            return@withContext Result.retry()
+        }
 
         val attendanceInfo = mainViewModel.getAttendanceInfo()
 
@@ -35,6 +38,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
 
         Result.success()
     }
+
 
     private fun sendNotification(attendanceInfo: List<Attendance>) {
         val notificationManager = NotificationManagerCompat.from(applicationContext)
