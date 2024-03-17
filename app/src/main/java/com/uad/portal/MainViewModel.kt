@@ -10,11 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.gson.Gson
-import com.uad.portal.API.Auth
-import com.uad.portal.API.Credentials
-import com.uad.portal.API.LoginResult
-import com.uad.portal.API.ReglabCredentials
+import com.uad.portal.API.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,10 +21,10 @@ import org.jsoup.nodes.Element
 import java.util.concurrent.TimeUnit
 
 
-
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager
     private val auth = Auth()
+    lateinit var reglab: Reglab
 
     val isLoggedInState = mutableStateOf(false)
     val userInfoState = mutableStateOf<UserInfo?>(null)
@@ -50,6 +46,7 @@ class MainViewModel : ViewModel() {
 
     fun initSessionManager(context: Context) {
         sessionManager = SessionManager(context)
+        reglab = Reglab(sessionManager)
         val session = sessionManager.loadPortalSession()
         session?.let {
             isLoggedInState.value = true
@@ -57,7 +54,6 @@ class MainViewModel : ViewModel() {
             autoLogin()
         }
     }
-
     fun initAttendanceWorker(context: Context) {
         val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(3, TimeUnit.MINUTES).build()
         WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
@@ -116,24 +112,6 @@ class MainViewModel : ViewModel() {
         val response = connectJsoup(url, sessionCookie, data, Connection.Method.POST)
         return response.statusCode() == 200
     }
-
-    suspend fun fetchScheduleData(): PracticumInfo = withContext(Dispatchers.IO) {
-        val session = sessionManager.loadReglabSession()
-        val username = session?.credentials?.username
-
-        if (session != null && username != null) {
-            val url = "https://reglab.tif.uad.ac.id/ajax/pemilihan-jadwal-praktikum/$username"
-            val response = Jsoup.connect(url)
-                .cookie("remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d", session.session!!)
-                .ignoreContentType(true)
-                .execute()
-            val json = response.body()
-            val gson = Gson()
-            return@withContext gson.fromJson(json, PracticumInfo::class.java)
-        }
-        throw Exception("Failed to load session")
-    }
-
 
     private fun connectJsoup(
         url: String,

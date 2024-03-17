@@ -15,11 +15,12 @@ import com.uad.portal.Screen
 
 @Composable
 fun ReglabView(mainViewModel: MainViewModel) {
+    val reglab = mainViewModel.reglab
     val scheduleData = remember { mutableStateOf<PracticumInfo?>(null) }
 
     LaunchedEffect(Unit) {
         try {
-            scheduleData.value = mainViewModel.fetchScheduleData()
+            scheduleData.value = reglab.fetchScheduleData()
             println(scheduleData.value)
         } catch (e: Exception) {
             println("Failed to fetch schedule data: ${e.message}")
