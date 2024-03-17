@@ -6,48 +6,58 @@ import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.uad.portal.API.Credentials
 
 class SessionManager(context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    companion object {
+        private const val PORTAL_SESSION_KEY = "portal_session"
+        private const val REGLAB_SESSION_KEY = "reglab_session"
+        private const val CREDENTIALS_KEY = "credentials"
+        private const val ENCRYPTED_PREF_NAME = "Portal UAD"
+    }
 
-    val sharedPref: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "Portal UAD",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private val masterKey by lazy {
+        MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+    }
 
-    val gson = Gson()
+    private val sharedPref: SharedPreferences by lazy {
+        EncryptedSharedPreferences.create(
+            context,
+            ENCRYPTED_PREF_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
-    inline fun <reified T> saveSession(key: String, session: T) {
-        val sessionJson = gson.toJson(session)
+    private val gson by lazy { Gson() }
+
+    private fun <T> saveSession(key: String, session: T, type: Class<T>) {
+        val sessionJson = gson.toJson(session, type)
         sharedPref.edit { putString(key, sessionJson) }
     }
 
-    inline fun <reified T> loadSession(key: String): T? {
+    private fun <T> loadSession(key: String, type: Class<T>): T? {
         val sessionJson = sharedPref.getString(key, null)
-        return if (sessionJson != null) {
-            val type = object : TypeToken<T>() {}.type
-            gson.fromJson(sessionJson, type)
-        } else {
-            null
+        return sessionJson?.let {
+            gson.fromJson(it, type)
         }
     }
 
-    fun savePortalSession(session: Session) = saveSession("portal_session", session)
-    fun loadPortalSession(): Session? = loadSession("portal_session")
+    private inline fun <reified T> save(key: String, value: T) = saveSession(key, value, T::class.java)
+    private inline fun <reified T> load(key: String): T? = loadSession(key, T::class.java)
 
-    fun saveReglabSession(session: ReglabSession) = saveSession("reglab_session", session)
-    fun loadReglabSession(): ReglabSession? = loadSession("reglab_session")
+    fun savePortalSession(session: Session) = save(PORTAL_SESSION_KEY, session)
+    fun loadPortalSession(): Session? = load(PORTAL_SESSION_KEY)
 
-    fun saveCredentials(credentials: Credentials) = saveSession("credentials", credentials)
-    fun loadCredentials(): Credentials? = loadSession("credentials")
+    fun saveReglabSession(session: ReglabSession) = save(REGLAB_SESSION_KEY, session)
+    fun loadReglabSession(): ReglabSession? = load(REGLAB_SESSION_KEY)
+
+    fun saveCredentials(credentials: Credentials) = save(CREDENTIALS_KEY, credentials)
+    fun loadCredentials(): Credentials? = load(CREDENTIALS_KEY)
 
     fun clearSession() {
         sharedPref.edit { clear() }
