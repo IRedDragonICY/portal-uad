@@ -1,4 +1,4 @@
-package com.uad.portal
+package com.uad.portal.views
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
+import com.uad.portal.MainViewModel
+import com.uad.portal.Screen
 
 @Composable
 fun HomeView(mainViewModel: MainViewModel) {

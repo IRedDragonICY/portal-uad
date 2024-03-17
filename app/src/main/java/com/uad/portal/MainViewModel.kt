@@ -11,6 +11,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.gson.Gson
+import com.uad.portal.API.Auth
+import com.uad.portal.API.Credentials
+import com.uad.portal.API.LoginResult
+import com.uad.portal.API.ReglabCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,11 +24,7 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.util.concurrent.TimeUnit
 
-data class PracticumInfo(
-    val status: String,
-    val message: String?,
-    val data: List<DataItem>
-)
+
 
 class MainViewModel : ViewModel() {
     private lateinit var sessionManager: SessionManager

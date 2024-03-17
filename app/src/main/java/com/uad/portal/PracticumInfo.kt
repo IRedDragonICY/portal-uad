@@ -1,5 +1,12 @@
 package com.uad.portal
 
+
+data class PracticumInfo(
+    val status: String,
+    val message: String?,
+    val data: List<DataItem>
+)
+
 data class DataItem(
     val id: Int,
     val jadwal_praktikum_id: Int,

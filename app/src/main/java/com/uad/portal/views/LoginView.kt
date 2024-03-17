@@ -1,4 +1,4 @@
-package com.uad.portal
+package com.uad.portal.views
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -29,6 +29,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
+import com.uad.portal.API.Credentials
+import com.uad.portal.MainViewModel
+import com.uad.portal.R
 import kotlinx.coroutines.launch
 
 @Composable

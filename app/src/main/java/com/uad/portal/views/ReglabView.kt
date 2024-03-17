@@ -1,4 +1,4 @@
-package com.uad.portal
+package com.uad.portal.views
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -9,6 +9,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.uad.portal.MainViewModel
+import com.uad.portal.PracticumInfo
+import com.uad.portal.Screen
 
 @Composable
 fun ReglabView(mainViewModel: MainViewModel) {

@@ -1,5 +1,8 @@
 package com.uad.portal
 
+import com.uad.portal.API.Credentials
+import com.uad.portal.API.ReglabCredentials
+
 data class Session(
     var session: String? = null,
     var userInfo: UserInfo? = null,
