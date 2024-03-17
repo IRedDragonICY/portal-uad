@@ -1,9 +1,13 @@
 package com.uad.portal
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -28,7 +32,22 @@ class MainViewModel : ViewModel() {
     val userInfoState = mutableStateOf<UserInfo?>(null)
     val currentScreen = mutableStateOf(Screen.Home)
 
-    val isNetworkAvailable: MutableLiveData<Boolean> = MutableLiveData<Boolean>()
+    val isNetworkAvailable: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
+
+    private val networkReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            checkNetworkAvailability(context)
+        }
+    }
+
+    fun registerNetworkCallback(context: Context) {
+        val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        context.registerReceiver(networkReceiver, filter)
+    }
+
+    fun unregisterNetworkCallback(context: Context) {
+        context.unregisterReceiver(networkReceiver)
+    }
 
     fun checkNetworkAvailability(context: Context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -53,16 +72,21 @@ class MainViewModel : ViewModel() {
             autoLogin()
         }
     }
+
     fun initAttendanceWorker(context: Context) {
         val attendanceWorkRequest = PeriodicWorkRequestBuilder<AttendanceWorker>(3, TimeUnit.MINUTES).build()
         WorkManager.getInstance(context).enqueue(attendanceWorkRequest)
     }
 
-
     private fun autoLogin() = viewModelScope.launch {
-        val credentials = sessionManager.loadCredentials()
-        credentials?.let { login(it) }
+        if (isNetworkAvailable.value == true) {
+            val credentials = sessionManager.loadCredentials()
+            credentials?.let { login(it) }
+        } else {
+            Log.e("MainViewModel", "Cannot auto login due to no internet connection")
+        }
     }
+
 
     fun navigate(screen: Screen) {
         currentScreen.value = screen
@@ -96,3 +120,4 @@ class MainViewModel : ViewModel() {
         return@withContext loginResult
     }
 }
+

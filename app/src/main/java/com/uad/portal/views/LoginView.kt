@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ fun LoginView(mainViewModel: MainViewModel) {
     val (credentials, setCredentials) = remember { mutableStateOf(Credentials("", "")) }
     val (passwordVisibility, setPasswordVisibility) = remember { mutableStateOf(false) }
     val (loginErrorMessage, setLoginErrorMessage) = remember { mutableStateOf("") }
+    val isNetworkAvailable = mainViewModel.isNetworkAvailable.observeAsState(initial = false)
 
     val passwordFocusRequester = remember { FocusRequester() }
 
@@ -48,6 +50,7 @@ fun LoginView(mainViewModel: MainViewModel) {
             setLoginErrorMessage(loginResult.errorMessage ?: "")
         }
     }
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier
@@ -121,10 +124,12 @@ fun LoginView(mainViewModel: MainViewModel) {
             Button(
                 onClick = { attemptLogin() },
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                enabled = isNetworkAvailable.value ?: false
             ) {
                 Text("Login")
             }
+
             Spacer(modifier = Modifier.height(16.dp))
             if (loginErrorMessage.isNotEmpty()) {
                 Text(text = loginErrorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.CenterHorizontally)) // Removed padding here

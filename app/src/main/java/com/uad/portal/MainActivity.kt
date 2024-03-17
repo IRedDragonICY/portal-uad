@@ -29,11 +29,12 @@ class MainActivity : ComponentActivity() {
         mainViewModel.isNetworkAvailable.observe(this) { isAvailable ->
             if (isAvailable) {
                 mainViewModel.initAttendanceWorker(this)
+                Toast.makeText(this, "Internet connection is available", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(this, "Internet connection is not available", Toast.LENGTH_LONG).show()
             }
         }
-        mainViewModel.checkNetworkAvailability(this)
+
 
         setContent {
             PortalUADTheme {
@@ -49,6 +50,16 @@ class MainActivity : ComponentActivity() {
         }
 
         createNotificationChannel()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        mainViewModel.registerNetworkCallback(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mainViewModel.unregisterNetworkCallback(this)
     }
 
     private fun createNotificationChannel() {

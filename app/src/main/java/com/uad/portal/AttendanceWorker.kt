@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -18,29 +19,45 @@ import com.uad.portal.API.portal
 import com.uad.portal.views.Attendance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
     private lateinit var sessionManager: SessionManager
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        sessionManager = SessionManager(applicationContext)
-        val portal = portal(sessionManager)
-        val mainViewModel = MainViewModel()
-        mainViewModel.initSessionManager(applicationContext)
+        try {
+            sessionManager = SessionManager(applicationContext)
+            val portal = portal(sessionManager)
 
-        if (!mainViewModel.isNetworkAvailable.value!!) {
-            return@withContext Result.retry()
-        }
+            if (portal == null) {
+                Log.e("AttendanceWorker", "Portal is null")
+                return@withContext Result.failure()
+            }
 
-        val attendanceInfo = portal.getAttendanceInfo()
+            val mainViewModel = MainViewModel().apply {
+                initSessionManager(applicationContext)
+            }
 
-        if (attendanceInfo.isNotEmpty()) {
+            val attendanceInfo = portal.getAttendanceInfo()
+            if (attendanceInfo == null || attendanceInfo.isEmpty()) {
+                Log.e("AttendanceWorker", "Attendance info is null or empty")
+                return@withContext Result.failure()
+            }
+
             sendNotification(attendanceInfo)
-        }
 
-        Result.success()
+            Result.success()
+        } catch (e: CancellationException) {
+            Log.e("AttendanceWorker", "Work cancelled, retrying later", e)
+            Result.retry()
+        } catch (e: Exception) {
+            Log.e("AttendanceWorker", "Error in doWork: ", e)
+            Result.failure()
+        }
     }
+
+
 
 
 
