@@ -15,8 +15,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.uad.portal.ui.theme.PortalUADTheme
 import com.uad.portal.views.*
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
@@ -25,6 +27,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         mainViewModel.initSessionManager(this)
+
+        lifecycleScope.launchWhenCreated {
+            delay(1000)
+            mainViewModel.isNetworkAvailable.observe(this@MainActivity) { isAvailable ->
+                if (isAvailable) {
+                    mainViewModel.initAttendanceWorker(this@MainActivity)
+                    Toast.makeText(this@MainActivity, "Internet connection is now available", Toast.LENGTH_LONG).show()
+                } else if (mainViewModel.wasNetworkAvailable()) {
+                    Toast.makeText(this@MainActivity, "Internet connection is not available", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
 
         setContent {
             PortalUADTheme {
@@ -45,21 +60,11 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         mainViewModel.registerNetworkCallback(this)
-
-        mainViewModel.isNetworkAvailable.observe(this) { isAvailable ->
-            if (isAvailable) {
-                mainViewModel.initAttendanceWorker(this)
-                Toast.makeText(this, "Internet connection is available", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this, "Internet connection is not available", Toast.LENGTH_LONG).show()
-            }
-        }
     }
 
     override fun onStop() {
         super.onStop()
         mainViewModel.unregisterNetworkCallback(this)
-        mainViewModel.isNetworkAvailable.removeObservers(this)
     }
 
     private fun createNotificationChannel() {

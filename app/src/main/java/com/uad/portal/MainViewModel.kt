@@ -34,6 +34,11 @@ class MainViewModel : ViewModel() {
 
     val isNetworkAvailable: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
 
+    private var wasNetworkAvailable = false
+
+    fun wasNetworkAvailable(): Boolean {
+        return wasNetworkAvailable
+    }
     private val networkReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             checkNetworkAvailability(context)
@@ -51,15 +56,28 @@ class MainViewModel : ViewModel() {
 
     fun checkNetworkAvailability(context: Context) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return isNetworkAvailable.postValue(false)
-            val activeNetwork: NetworkCapabilities? = connectivityManager.getNetworkCapabilities(network)
-            isNetworkAvailable.postValue(activeNetwork?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false)
+        val isAvailable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork
+            if (network != null) {
+                val activeNetwork: NetworkCapabilities? = connectivityManager.getNetworkCapabilities(network)
+                activeNetwork?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false
+            } else {
+                false
+            }
         } else {
             val networkInfo = connectivityManager.activeNetworkInfo
-            isNetworkAvailable.postValue(networkInfo?.isConnected ?: false)
+            networkInfo?.isConnected ?: false
         }
+
+        if (!isAvailable && wasNetworkAvailable) {
+            isNetworkAvailable.postValue(false)
+        } else if (isAvailable) {
+            isNetworkAvailable.postValue(true)
+        }
+
+        wasNetworkAvailable = isAvailable
     }
+
 
     fun initSessionManager(context: Context) {
         sessionManager = SessionManager(context)
