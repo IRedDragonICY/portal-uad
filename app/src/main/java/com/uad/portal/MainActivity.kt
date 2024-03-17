@@ -1,5 +1,6 @@
 package com.uad.portal
 
+import NetworkHandler
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -15,10 +16,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.uad.portal.ui.theme.PortalUADTheme
 import com.uad.portal.views.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
@@ -26,20 +30,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val networkHandler = NetworkHandler(this)
+        mainViewModel.networkHandler = networkHandler
         mainViewModel.initSessionManager(this)
 
-        lifecycleScope.launchWhenCreated {
-            delay(1000)
-            mainViewModel.isNetworkAvailable.observe(this@MainActivity) { isAvailable ->
-                if (isAvailable && mainViewModel.networkChanged) {
-                    mainViewModel.initAttendanceWorker(this@MainActivity)
-                    Toast.makeText(this@MainActivity, "Internet connection is now available", Toast.LENGTH_LONG).show()
-                } else if (!isAvailable && mainViewModel.networkChanged) {
-                    Toast.makeText(this@MainActivity, "Internet connection is not available", Toast.LENGTH_LONG).show()
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.CREATED) {
+                launch {
+                    delay(1000)
+                    mainViewModel.networkHandler.isNetworkAvailable.observe(this@MainActivity) { isAvailable ->
+                        if (isAvailable) {
+                            mainViewModel.initAttendanceWorker(this@MainActivity)
+                            Toast.makeText(this@MainActivity, "Internet connection is now available", Toast.LENGTH_LONG).show()
+                        } else if (!isAvailable) {
+                            Toast.makeText(this@MainActivity, "Internet connection is not available", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 }
             }
         }
-
 
         setContent {
             PortalUADTheme {
@@ -59,12 +68,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        mainViewModel.registerNetworkCallback(this)
+        mainViewModel.networkHandler.registerNetworkCallback()
     }
 
     override fun onStop() {
         super.onStop()
-        mainViewModel.unregisterNetworkCallback(this)
+        mainViewModel.networkHandler.unregisterNetworkCallback()
     }
 
     private fun createNotificationChannel() {

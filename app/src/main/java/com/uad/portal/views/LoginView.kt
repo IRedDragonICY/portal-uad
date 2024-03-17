@@ -40,7 +40,7 @@ fun LoginView(mainViewModel: MainViewModel) {
     val (credentials, setCredentials) = remember { mutableStateOf(Credentials("", "")) }
     val (passwordVisibility, setPasswordVisibility) = remember { mutableStateOf(false) }
     val (loginErrorMessage, setLoginErrorMessage) = remember { mutableStateOf("") }
-    val isNetworkAvailable = mainViewModel.isNetworkAvailable.observeAsState(initial = false)
+    val isNetworkAvailable = mainViewModel.networkHandler.isNetworkAvailable.observeAsState(initial = false)
 
     val passwordFocusRequester = remember { FocusRequester() }
 
