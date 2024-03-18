@@ -87,4 +87,8 @@ class MainViewModel : ViewModel() {
         }
         return@withContext loginResult
     }
+
+    suspend fun markAttendanceInPortal(klsdtId: String, presklsId: String): Boolean {
+        return portal.markAttendance(klsdtId, presklsId)
+    }
 }
