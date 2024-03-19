@@ -1,6 +1,5 @@
 package com.uad.portal
 
-import AttendanceService
 import android.Manifest
 import android.app.Notification
 import android.app.PendingIntent
@@ -57,10 +56,6 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
         }
     }
 
-
-
-
-
     private fun sendNotification(attendanceInfo: List<Attendance>) {
         val notificationManager = NotificationManagerCompat.from(applicationContext)
         val channelId = "attendance_notifications"
@@ -70,6 +65,8 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
                 val attendanceIntent = Intent(applicationContext, AttendanceService::class.java).apply {
                     putExtra("klsdtId", attendance.klsdtId)
                     putExtra("presklsId", attendance.presklsId)
+                    // Kirimkan ID notifikasi ke AttendanceService
+                    putExtra("notificationId", index)
                 }
 
                 val attendancePendingIntent: PendingIntent = PendingIntent.getService(applicationContext, index, attendanceIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -93,6 +90,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
             }
         }
     }
+
 
 
 
