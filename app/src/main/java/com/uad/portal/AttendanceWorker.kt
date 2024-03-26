@@ -65,7 +65,6 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
                 val attendanceIntent = Intent(applicationContext, AttendanceService::class.java).apply {
                     putExtra("klsdtId", attendance.klsdtId)
                     putExtra("presklsId", attendance.presklsId)
-                    // Kirimkan ID notifikasi ke AttendanceService
                     putExtra("notificationId", index)
                 }
 
@@ -77,6 +76,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
                     .setContentText(attendance.meetingDate)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .addAction(R.drawable.logo_uad, "Absen", attendancePendingIntent)
+                    .setAutoCancel(true)
                     .build()
 
                 if (ActivityCompat.checkSelfPermission(
@@ -90,6 +90,7 @@ class AttendanceWorker(appContext: Context, workerParams: WorkerParameters) :
             }
         }
     }
+
 
 
 
